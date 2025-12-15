@@ -65,6 +65,7 @@ import { NutritionPanel, defaultNutritionData } from "@/components/ficha-tecnica
 import { ShareDialog } from "@/components/ficha-tecnica/ShareDialog";
 import { MobileCostBar } from "@/components/ficha-tecnica/MobileCostBar";
 import { SmartIngredientInput } from "@/components/ficha-tecnica/SmartIngredientInput";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { Apple } from "lucide-react";
 
 const FichaTecnicaEdit = () => {
@@ -489,9 +490,7 @@ const FichaTecnicaEdit = () => {
               <h1 className="text-2xl font-bold text-foreground">Editar Ficha Técnica</h1>
               <div className="flex items-center gap-2">
                 <p className="text-sm text-muted-foreground">Código: {sheet.code}</p>
-                {saveStatus === 'saving' && <span className="text-xs text-amber-500 animate-pulse flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Salvando...</span>}
-                {saveStatus === 'saved' && <span className="text-xs text-emerald-500 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Salvo</span>}
-                {saveStatus === 'error' && <span className="text-xs text-red-500 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Erro ao salvar</span>}
+                <StatusBadge status={saveStatus} />
               </div>
             </div>
           </div>

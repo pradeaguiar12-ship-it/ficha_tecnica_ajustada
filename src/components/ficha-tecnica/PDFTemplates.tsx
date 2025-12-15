@@ -143,6 +143,82 @@ const defaultConfig: PDFConfig = {
     showLogo: true
 };
 
+const MetaSection = ({ sheet }: TemplateProps) => (
+    <View style={styles.metaGrid}>
+        <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Categoria</Text>
+            <Text style={styles.metaValue}>{sheet.category?.name || 'Geral'}</Text>
+        </View>
+        <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Rendimento</Text>
+            <Text style={styles.metaValue}>{sheet.yieldQuantity} {sheet.yieldUnit}</Text>
+        </View>
+        <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Preparo</Text>
+            <Text style={styles.metaValue}>{sheet.prepTimeMinutes} min</Text>
+        </View>
+        <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Cozimento</Text>
+            <Text style={styles.metaValue}>{sheet.cookTimeMinutes} min</Text>
+        </View>
+        <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Descanso</Text>
+            <Text style={styles.metaValue}>{sheet.restTimeMinutes} min</Text>
+        </View>
+        <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Código</Text>
+            <Text style={styles.metaValue}>{sheet.code}</Text>
+        </View>
+    </View>
+);
+
+const IngredientsTable = ({ sheet, showCosts }: { sheet: TechnicalSheet, showCosts: boolean }) => (
+    <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ingredientes</Text>
+        <View style={[styles.row, { backgroundColor: '#F9FAFB', borderBottomWidth: 0 }]}>
+            <Text style={[styles.col1, styles.bold]}>Item</Text>
+            <Text style={[styles.col2, styles.bold]}>Qtd</Text>
+            <Text style={[styles.col3, styles.bold]}>Und</Text>
+            {showCosts && <Text style={[styles.col4, styles.bold]}>Custo</Text>}
+        </View>
+        {sheet.ingredients.map((ing, i) => (
+            <View key={i} style={styles.row}>
+                <Text style={styles.col1}>{ing.ingredient.name}</Text>
+                <Text style={styles.col2}>{ing.quantity}</Text>
+                <Text style={styles.col3}>{ing.unit}</Text>
+                {showCosts && <Text style={styles.col4}>{formatCurrency(ing.calculatedCost)}</Text>}
+            </View>
+        ))}
+        {showCosts && (
+            <View style={styles.totalRow}>
+                <Text style={{ width: '80%', textAlign: 'right', fontWeight: 'bold' }}>Total Ingredientes:</Text>
+                <Text style={{ width: '20%', textAlign: 'right', fontWeight: 'bold' }}>
+                    {formatCurrency(sheet.totalIngredientCost)}
+                </Text>
+            </View>
+        )}
+    </View>
+);
+
+const StepsList = ({ steps, legacyInstructions }: { steps?: PreparationStep[], legacyInstructions?: string }) => (
+    <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Modo de Preparo</Text>
+        {steps && steps.length > 0 ? (
+            steps.map((step, i) => (
+                <View key={step.id} style={styles.stepContainer}>
+                    <Text style={styles.stepIndex}>{i + 1}.</Text>
+                    <View style={styles.stepContent}>
+                        {step.isCritical && <Text style={styles.criticalBadge}>[ATENÇÃO]</Text>}
+                        <Text>{step.text} {step.timeInMinutes ? `(${step.timeInMinutes} min)` : ''}</Text>
+                    </View>
+                </View>
+            ))
+        ) : (
+            <Text>{legacyInstructions || 'Nenhuma instrução cadastrada.'}</Text>
+        )}
+    </View>
+);
+
 export const KitchenTemplate = ({ sheet, config = defaultConfig }: TemplateProps) => (
     <Document>
         <Page size="A4" style={styles.page}>
