@@ -1,0 +1,48 @@
+{
+  "name": "Meu Chef Digital - Fichas Técnicas",
+  "short_name": "Meu Chef",
+  "description": "Sistema profissional de fichas técnicas para chefs e empreendedores gastronômicos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "food", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nova Ficha",
+      "short_name": "Nova",
+      "description": "Criar nova ficha técnica",
+      "url": "/ficha-tecnica/nova",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver dashboard analítico",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+
