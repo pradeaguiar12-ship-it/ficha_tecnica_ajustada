@@ -21,6 +21,7 @@ export interface Ingredient {
   description?: string;
   unitPrice: number;
   priceUnit: string;
+  defaultUnit?: string;
   defaultCorrection: number;
   supplier?: string;
   categoryId: string;
@@ -41,6 +42,24 @@ export interface SheetIngredient {
   notes?: string;
 }
 
+export interface PreparationStep {
+  id: string;
+  text: string;
+  isCritical: boolean;
+  timeInMinutes?: number;
+}
+
+export interface NutritionData {
+  portionSize: number;
+  portionUnit: string;
+  calories: number;
+  carbohydrates: number;
+  protein: number;
+  fat: number;
+  fiber: number;
+  sodium: number;
+}
+
 export interface TechnicalSheet {
   id: string;
   userId: string;
@@ -55,8 +74,11 @@ export interface TechnicalSheet {
   cookTimeMinutes: number;
   restTimeMinutes: number;
   instructions?: string;
+  steps?: PreparationStep[];
   tips?: string;
   imageUrl?: string;
+  nutrition?: NutritionData;
+  useGlobalOverhead?: boolean;
   overheadCost: number;
   packagingCost: number;
   laborCostPerHour: number;
@@ -95,101 +117,101 @@ export const recipeCategories: RecipeCategory[] = [
 
 export const mockIngredients: Ingredient[] = [
   // ===== PROTEÍNAS (categoryId: '1') =====
-  { id: '1', userId: null, name: 'Filé Mignon', unitPrice: 89.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '2', userId: null, name: 'Frango Peito', unitPrice: 24.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '3', userId: null, name: 'Camarão Médio', unitPrice: 79.90, priceUnit: 'kg', defaultCorrection: 1.50, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '4', userId: null, name: 'Ovo', unitPrice: 1.50, priceUnit: 'unidade', defaultCorrection: 1.10, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '17', userId: null, name: 'Picanha', unitPrice: 79.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '18', userId: null, name: 'Alcatra', unitPrice: 49.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '19', userId: null, name: 'Contra Filé', unitPrice: 54.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '20', userId: null, name: 'Costela Bovina', unitPrice: 34.90, priceUnit: 'kg', defaultCorrection: 1.30, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '21', userId: null, name: 'Acém', unitPrice: 32.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '22', userId: null, name: 'Patinho', unitPrice: 42.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '23', userId: null, name: 'Coxão Mole', unitPrice: 44.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '24', userId: null, name: 'Coxão Duro', unitPrice: 39.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '25', userId: null, name: 'Frango Coxa', unitPrice: 16.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '26', userId: null, name: 'Frango Sobrecoxa', unitPrice: 18.90, priceUnit: 'kg', defaultCorrection: 1.18, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '27', userId: null, name: 'Frango Inteiro', unitPrice: 14.90, priceUnit: 'kg', defaultCorrection: 1.35, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '28', userId: null, name: 'Pernil Suíno', unitPrice: 19.90, priceUnit: 'kg', defaultCorrection: 1.25, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '29', userId: null, name: 'Lombo Suíno', unitPrice: 29.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '30', userId: null, name: 'Costela Suína', unitPrice: 24.90, priceUnit: 'kg', defaultCorrection: 1.30, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '31', userId: null, name: 'Bacon', unitPrice: 49.90, priceUnit: 'kg', defaultCorrection: 1.10, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '32', userId: null, name: 'Linguiça Calabresa', unitPrice: 29.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '33', userId: null, name: 'Linguiça Toscana', unitPrice: 24.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '34', userId: null, name: 'Salmão Filé', unitPrice: 89.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '35', userId: null, name: 'Tilápia Filé', unitPrice: 39.90, priceUnit: 'kg', defaultCorrection: 1.10, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '36', userId: null, name: 'Bacalhau Dessalgado', unitPrice: 129.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '37', userId: null, name: 'Camarão Grande', unitPrice: 99.90, priceUnit: 'kg', defaultCorrection: 1.50, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '38', userId: null, name: 'Lula', unitPrice: 59.90, priceUnit: 'kg', defaultCorrection: 1.40, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '39', userId: null, name: 'Polvo', unitPrice: 119.90, priceUnit: 'kg', defaultCorrection: 1.45, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '40', userId: null, name: 'Mexilhão', unitPrice: 34.90, priceUnit: 'kg', defaultCorrection: 1.60, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '41', userId: null, name: 'Cordeiro Pernil', unitPrice: 79.90, priceUnit: 'kg', defaultCorrection: 1.25, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '1', userId: null, name: 'Filé Mignon', unitPrice: 89.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '2', userId: null, name: 'Frango Peito', unitPrice: 24.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '3', userId: null, name: 'Camarão Médio', unitPrice: 79.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.50, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '4', userId: null, name: 'Ovo', unitPrice: 1.50, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.10, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '17', userId: null, name: 'Picanha', unitPrice: 79.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '18', userId: null, name: 'Alcatra', unitPrice: 49.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '19', userId: null, name: 'Contra Filé', unitPrice: 54.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '20', userId: null, name: 'Costela Bovina', unitPrice: 34.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.30, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '21', userId: null, name: 'Acém', unitPrice: 32.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '22', userId: null, name: 'Patinho', unitPrice: 42.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '23', userId: null, name: 'Coxão Mole', unitPrice: 44.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '24', userId: null, name: 'Coxão Duro', unitPrice: 39.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '25', userId: null, name: 'Frango Coxa', unitPrice: 16.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '26', userId: null, name: 'Frango Sobrecoxa', unitPrice: 18.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.18, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '27', userId: null, name: 'Frango Inteiro', unitPrice: 14.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.35, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '28', userId: null, name: 'Pernil Suíno', unitPrice: 19.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.25, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '29', userId: null, name: 'Lombo Suíno', unitPrice: 29.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '30', userId: null, name: 'Costela Suína', unitPrice: 24.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.30, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '31', userId: null, name: 'Bacon', unitPrice: 49.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.10, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '32', userId: null, name: 'Linguiça Calabresa', unitPrice: 29.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.05, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '33', userId: null, name: 'Linguiça Toscana', unitPrice: 24.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.05, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '34', userId: null, name: 'Salmão Filé', unitPrice: 89.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '35', userId: null, name: 'Tilápia Filé', unitPrice: 39.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.10, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '36', userId: null, name: 'Bacalhau Dessalgado', unitPrice: 129.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '37', userId: null, name: 'Camarão Grande', unitPrice: 99.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.50, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '38', userId: null, name: 'Lula', unitPrice: 59.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.40, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '39', userId: null, name: 'Polvo', unitPrice: 119.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.45, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '40', userId: null, name: 'Mexilhão', unitPrice: 34.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.60, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '41', userId: null, name: 'Cordeiro Pernil', unitPrice: 79.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.25, categoryId: '1', isActive: true, lastPriceUpdate: '2024-01-15' },
 
   // ===== HORTIFRUTI (categoryId: '2') =====
-  { id: '5', userId: null, name: 'Cebola', unitPrice: 5.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '6', userId: null, name: 'Alho', unitPrice: 39.90, priceUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '7', userId: null, name: 'Tomate', unitPrice: 8.90, priceUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '42', userId: null, name: 'Batata', unitPrice: 6.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '43', userId: null, name: 'Batata Doce', unitPrice: 7.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '44', userId: null, name: 'Cenoura', unitPrice: 5.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '45', userId: null, name: 'Abobrinha', unitPrice: 7.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '46', userId: null, name: 'Berinjela', unitPrice: 8.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '47', userId: null, name: 'Pimentão Verde', unitPrice: 9.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '48', userId: null, name: 'Pimentão Vermelho', unitPrice: 14.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '49', userId: null, name: 'Pimentão Amarelo', unitPrice: 14.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '50', userId: null, name: 'Brócolis', unitPrice: 12.90, priceUnit: 'kg', defaultCorrection: 1.40, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '51', userId: null, name: 'Couve-Flor', unitPrice: 11.90, priceUnit: 'kg', defaultCorrection: 1.45, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '52', userId: null, name: 'Repolho', unitPrice: 4.90, priceUnit: 'kg', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '53', userId: null, name: 'Alface Americana', unitPrice: 8.90, priceUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '54', userId: null, name: 'Alface Crespa', unitPrice: 3.90, priceUnit: 'unidade', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '55', userId: null, name: 'Rúcula', unitPrice: 4.90, priceUnit: 'unidade', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '56', userId: null, name: 'Espinafre', unitPrice: 14.90, priceUnit: 'kg', defaultCorrection: 1.35, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '57', userId: null, name: 'Couve Manteiga', unitPrice: 2.90, priceUnit: 'unidade', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '58', userId: null, name: 'Agrião', unitPrice: 3.90, priceUnit: 'unidade', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '59', userId: null, name: 'Pepino', unitPrice: 6.90, priceUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '60', userId: null, name: 'Vagem', unitPrice: 12.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '61', userId: null, name: 'Ervilha Fresca', unitPrice: 19.90, priceUnit: 'kg', defaultCorrection: 1.50, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '62', userId: null, name: 'Milho Verde', unitPrice: 2.90, priceUnit: 'unidade', defaultCorrection: 1.40, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '63', userId: null, name: 'Abóbora Cabotiá', unitPrice: 5.90, priceUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '64', userId: null, name: 'Mandioca', unitPrice: 8.90, priceUnit: 'kg', defaultCorrection: 1.35, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '65', userId: null, name: 'Inhame', unitPrice: 9.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '66', userId: null, name: 'Chuchu', unitPrice: 4.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '67', userId: null, name: 'Jiló', unitPrice: 7.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '68', userId: null, name: 'Quiabo', unitPrice: 11.90, priceUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '69', userId: null, name: 'Limão', unitPrice: 6.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '70', userId: null, name: 'Laranja', unitPrice: 4.90, priceUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '71', userId: null, name: 'Maçã', unitPrice: 9.90, priceUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '72', userId: null, name: 'Banana', unitPrice: 5.90, priceUnit: 'kg', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '73', userId: null, name: 'Morango', unitPrice: 29.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '74', userId: null, name: 'Manga', unitPrice: 7.90, priceUnit: 'kg', defaultCorrection: 1.35, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '75', userId: null, name: 'Abacaxi', unitPrice: 6.90, priceUnit: 'unidade', defaultCorrection: 1.45, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '76', userId: null, name: 'Maracujá', unitPrice: 12.90, priceUnit: 'kg', defaultCorrection: 1.50, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '77', userId: null, name: 'Cogumelo Paris', unitPrice: 39.90, priceUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '78', userId: null, name: 'Cogumelo Shitake', unitPrice: 59.90, priceUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '79', userId: null, name: 'Aspargos', unitPrice: 49.90, priceUnit: 'kg', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '80', userId: null, name: 'Alcachofra', unitPrice: 12.90, priceUnit: 'unidade', defaultCorrection: 1.60, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '5', userId: null, name: 'Cebola', unitPrice: 5.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '6', userId: null, name: 'Alho', unitPrice: 39.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '7', userId: null, name: 'Tomate', unitPrice: 8.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '42', userId: null, name: 'Batata', unitPrice: 6.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '43', userId: null, name: 'Batata Doce', unitPrice: 7.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '44', userId: null, name: 'Cenoura', unitPrice: 5.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '45', userId: null, name: 'Abobrinha', unitPrice: 7.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '46', userId: null, name: 'Berinjela', unitPrice: 8.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '47', userId: null, name: 'Pimentão Verde', unitPrice: 9.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '48', userId: null, name: 'Pimentão Vermelho', unitPrice: 14.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '49', userId: null, name: 'Pimentão Amarelo', unitPrice: 14.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '50', userId: null, name: 'Brócolis', unitPrice: 12.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.40, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '51', userId: null, name: 'Couve-Flor', unitPrice: 11.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.45, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '52', userId: null, name: 'Repolho', unitPrice: 4.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '53', userId: null, name: 'Alface Americana', unitPrice: 8.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '54', userId: null, name: 'Alface Crespa', unitPrice: 3.90, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '55', userId: null, name: 'Rúcula', unitPrice: 4.90, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '56', userId: null, name: 'Espinafre', unitPrice: 14.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.35, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '57', userId: null, name: 'Couve Manteiga', unitPrice: 2.90, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '58', userId: null, name: 'Agrião', unitPrice: 3.90, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '59', userId: null, name: 'Pepino', unitPrice: 6.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '60', userId: null, name: 'Vagem', unitPrice: 12.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '61', userId: null, name: 'Ervilha Fresca', unitPrice: 19.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.50, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '62', userId: null, name: 'Milho Verde', unitPrice: 2.90, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.40, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '63', userId: null, name: 'Abóbora Cabotiá', unitPrice: 5.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '64', userId: null, name: 'Mandioca', unitPrice: 8.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.35, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '65', userId: null, name: 'Inhame', unitPrice: 9.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '66', userId: null, name: 'Chuchu', unitPrice: 4.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '67', userId: null, name: 'Jiló', unitPrice: 7.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '68', userId: null, name: 'Quiabo', unitPrice: 11.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.20, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '69', userId: null, name: 'Limão', unitPrice: 6.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '70', userId: null, name: 'Laranja', unitPrice: 4.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.30, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '71', userId: null, name: 'Maçã', unitPrice: 9.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '72', userId: null, name: 'Banana', unitPrice: 5.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '73', userId: null, name: 'Morango', unitPrice: 29.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '74', userId: null, name: 'Manga', unitPrice: 7.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.35, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '75', userId: null, name: 'Abacaxi', unitPrice: 6.90, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.45, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '76', userId: null, name: 'Maracujá', unitPrice: 12.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.50, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '77', userId: null, name: 'Cogumelo Paris', unitPrice: 39.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.10, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '78', userId: null, name: 'Cogumelo Shitake', unitPrice: 59.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.15, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '79', userId: null, name: 'Aspargos', unitPrice: 49.90, priceUnit: 'kg', defaultUnit: 'kg', defaultCorrection: 1.25, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '80', userId: null, name: 'Alcachofra', unitPrice: 12.90, priceUnit: 'unidade', defaultUnit: 'unidade', defaultCorrection: 1.60, categoryId: '2', isActive: true, lastPriceUpdate: '2024-01-15' },
 
   // ===== LATICÍNIOS (categoryId: '3') =====
-  { id: '8', userId: null, name: 'Leite Integral', unitPrice: 6.50, priceUnit: 'L', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '9', userId: null, name: 'Manteiga', unitPrice: 45.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '10', userId: null, name: 'Queijo Mussarela', unitPrice: 44.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '81', userId: null, name: 'Leite Desnatado', unitPrice: 6.90, priceUnit: 'L', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '82', userId: null, name: 'Creme de Leite', unitPrice: 8.90, priceUnit: 'L', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '83', userId: null, name: 'Leite Condensado', unitPrice: 9.90, priceUnit: 'L', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '84', userId: null, name: 'Queijo Parmesão', unitPrice: 89.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '85', userId: null, name: 'Queijo Provolone', unitPrice: 54.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '86', userId: null, name: 'Queijo Gorgonzola', unitPrice: 79.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '87', userId: null, name: 'Queijo Brie', unitPrice: 99.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '88', userId: null, name: 'Queijo Coalho', unitPrice: 39.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '89', userId: null, name: 'Queijo Minas Frescal', unitPrice: 34.90, priceUnit: 'kg', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '90', userId: null, name: 'Queijo Cottage', unitPrice: 29.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '91', userId: null, name: 'Requeijão Cremoso', unitPrice: 24.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '92', userId: null, name: 'Cream Cheese', unitPrice: 39.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '93', userId: null, name: 'Ricota', unitPrice: 24.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '94', userId: null, name: 'Iogurte Natural', unitPrice: 14.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '95', userId: null, name: 'Iogurte Grego', unitPrice: 24.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '96', userId: null, name: 'Chantilly', unitPrice: 19.90, priceUnit: 'L', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
-  { id: '97', userId: null, name: 'Mascarpone', unitPrice: 69.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '8', userId: null, name: 'Leite Integral', unitPrice: 6.50, priceUnit: 'L', defaultUnit: 'ml', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '9', userId: null, name: 'Manteiga', unitPrice: 45.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '10', userId: null, name: 'Queijo Mussarela', unitPrice: 44.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '81', userId: null, name: 'Leite Desnatado', unitPrice: 6.90, priceUnit: 'L', defaultUnit: 'ml', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '82', userId: null, name: 'Creme de Leite', unitPrice: 8.90, priceUnit: 'L', defaultUnit: 'ml', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '83', userId: null, name: 'Leite Condensado', unitPrice: 9.90, priceUnit: 'L', defaultUnit: 'ml', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '84', userId: null, name: 'Queijo Parmesão', unitPrice: 89.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '85', userId: null, name: 'Queijo Provolone', unitPrice: 54.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '86', userId: null, name: 'Queijo Gorgonzola', unitPrice: 79.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '87', userId: null, name: 'Queijo Brie', unitPrice: 99.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '88', userId: null, name: 'Queijo Coalho', unitPrice: 39.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '89', userId: null, name: 'Queijo Minas Frescal', unitPrice: 34.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.05, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '90', userId: null, name: 'Queijo Cottage', unitPrice: 29.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '91', userId: null, name: 'Requeijão Cremoso', unitPrice: 24.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '92', userId: null, name: 'Cream Cheese', unitPrice: 39.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '93', userId: null, name: 'Ricota', unitPrice: 24.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '94', userId: null, name: 'Iogurte Natural', unitPrice: 14.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '95', userId: null, name: 'Iogurte Grego', unitPrice: 24.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '96', userId: null, name: 'Chantilly', unitPrice: 19.90, priceUnit: 'L', defaultUnit: 'ml', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
+  { id: '97', userId: null, name: 'Mascarpone', unitPrice: 69.90, priceUnit: 'kg', defaultUnit: 'g', defaultCorrection: 1.0, categoryId: '3', isActive: true, lastPriceUpdate: '2024-01-15' },
 
   // ===== GRÃOS E CEREAIS (categoryId: '4') =====
   { id: '11', userId: null, name: 'Arroz Branco', unitPrice: 6.90, priceUnit: 'kg', defaultCorrection: 1.0, categoryId: '4', isActive: true, lastPriceUpdate: '2024-01-15' },
@@ -541,10 +563,10 @@ export const mockSheets: TechnicalSheet[] = [
 export function updateMockSheet(id: string, data: Partial<TechnicalSheet>): void {
   const index = mockSheets.findIndex(s => s.id === id);
   if (index !== -1) {
-    mockSheets[index] = { 
-      ...mockSheets[index], 
-      ...data, 
-      updatedAt: new Date().toISOString().split('T')[0] 
+    mockSheets[index] = {
+      ...mockSheets[index],
+      ...data,
+      updatedAt: new Date().toISOString().split('T')[0]
     };
   }
 }

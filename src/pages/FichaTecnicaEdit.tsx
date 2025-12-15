@@ -42,7 +42,6 @@ import { OverheadCostSection } from "@/components/ficha-tecnica/OverheadCostSect
 import { IngredientSelector } from "@/components/ficha-tecnica/IngredientSelector";
 import { IngredientRow, RecipeIngredient } from "@/components/ficha-tecnica/IngredientRow";
 import {
-  recipeCategories,
   yieldUnitOptions,
   Ingredient,
 } from "@/lib/mock-data";
@@ -55,6 +54,18 @@ import {
 import { useSheets } from "@/hooks/useSheets";
 import { useSettings } from "@/hooks/useSettings";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useSheetPersistence } from "@/hooks/useSheetPersistence";
+import { useHistory } from "@/hooks/useHistory";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { calculateHash } from "@/lib/storage-utils";
+import { PreparationSteps } from "@/components/ficha-tecnica/PreparationSteps";
+import { PreparationStep, NutritionData, recipeCategories } from "@/lib/mock-data";
+import { NutritionPanel, defaultNutritionData } from "@/components/ficha-tecnica/NutritionPanel";
+import { ShareDialog } from "@/components/ficha-tecnica/ShareDialog";
+import { MobileCostBar } from "@/components/ficha-tecnica/MobileCostBar";
+import { SmartIngredientInput } from "@/components/ficha-tecnica/SmartIngredientInput";
+import { Apple } from "lucide-react";
 
 const FichaTecnicaEdit = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,6 +102,8 @@ const FichaTecnicaEdit = () => {
   });
 
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
+  const [steps, setSteps] = useState<PreparationStep[]>([]);
+  const [nutrition, setNutrition] = useState<NutritionData>(defaultNutritionData);
 
   // Load sheet data into form
   useEffect(() => {
@@ -125,30 +138,36 @@ const FichaTecnicaEdit = () => {
         calculatedCost: si.calculatedCost,
       }));
       setIngredients(recipeIngredients);
+      setSteps(sheet.steps || []);
+      if (sheet.nutrition) setNutrition(sheet.nutrition);
       setIsInitialized(true);
     }
   }, [sheet, isInitialized, globalOverheadPerUnit]);
 
-  // Calculations
+  const debouncedFormData = useDebounce(formData, 300);
+  const debouncedIngredients = useDebounce(ingredients, 300);
+  const debouncedSteps = useDebounce(steps, 300);
+  const debouncedNutrition = useDebounce(nutrition, 300);
+
   const calculations = useMemo(() => {
-    const ingredientsCost = ingredients.reduce((acc, ing) => acc + ing.calculatedCost, 0);
-    const effectiveOverhead = formData.useGlobalOverhead ? globalOverheadPerUnit : formData.overheadCost;
+    const ingredientsCost = debouncedIngredients.reduce((acc, ing) => acc + ing.calculatedCost, 0);
+    const effectiveOverhead = debouncedFormData.useGlobalOverhead ? globalOverheadPerUnit : debouncedFormData.overheadCost;
     const totalCost = calculateTotalCost(
       ingredientsCost,
       effectiveOverhead,
-      formData.packagingCost,
-      formData.laborCostPerHour,
-      formData.prepTimeMinutes,
-      formData.cookTimeMinutes
+      debouncedFormData.packagingCost,
+      debouncedFormData.laborCostPerHour,
+      debouncedFormData.prepTimeMinutes,
+      debouncedFormData.cookTimeMinutes
     );
-    const costPerUnit = calculateCostPerUnit(totalCost, formData.yieldQuantity);
-    const suggestedPrice = formData.useManualPrice
-      ? formData.manualPrice
-      : calculateSuggestedPrice(costPerUnit, formData.targetMargin);
+    const costPerUnit = calculateCostPerUnit(totalCost, debouncedFormData.yieldQuantity);
+    const suggestedPrice = debouncedFormData.useManualPrice
+      ? debouncedFormData.manualPrice
+      : calculateSuggestedPrice(costPerUnit, debouncedFormData.targetMargin);
     const actualMargin = calculateActualMargin(costPerUnit, suggestedPrice);
 
     const laborCost =
-      (formData.laborCostPerHour * (formData.prepTimeMinutes + formData.cookTimeMinutes)) / 60;
+      (debouncedFormData.laborCostPerHour * (debouncedFormData.prepTimeMinutes + debouncedFormData.cookTimeMinutes)) / 60;
 
     return {
       ingredientsCost,
@@ -159,13 +178,114 @@ const FichaTecnicaEdit = () => {
       breakdown: {
         ingredients: ingredientsCost,
         overhead: effectiveOverhead,
-        packaging: formData.packagingCost,
+        packaging: debouncedFormData.packagingCost,
         labor: laborCost,
       },
     };
-  }, [ingredients, formData, globalOverheadPerUnit]);
+  }, [debouncedIngredients, debouncedFormData, globalOverheadPerUnit]);
 
-  // Handlers
+  // Prepare data for persistence
+  const persistableData = useMemo(() => {
+    if (!sheet) return null;
+    return {
+      ...sheet,
+      ...debouncedFormData,
+      ingredients: debouncedIngredients.map(ing => ({
+        id: ing.id,
+        ingredient: ing.ingredient,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        correctionFactor: ing.correctionFactor,
+        calculatedCost: ing.calculatedCost
+      })),
+      steps: debouncedSteps,
+      nutrition: debouncedNutrition,
+      updatedAt: new Date().toISOString()
+    };
+  }, [sheet, debouncedFormData, debouncedIngredients, debouncedSteps, debouncedNutrition]);
+
+  // Persistence Hook
+  const { status: saveStatus, hasNewerDraft, recoverDraft, clearDraft } = useSheetPersistence(id || '', persistableData);
+
+  // Undo/Redo History
+  const {
+    state: historyState,
+    push: historyPush,
+    undo,
+    redo,
+    canUndo,
+    canRedo
+  } = useHistory(persistableData, 50);
+
+  // Sync TO History
+  useEffect(() => {
+    if (persistableData && (!historyState || calculateHash(persistableData) !== calculateHash(historyState))) {
+      historyPush(persistableData, 1000); // Debounce history updates
+    }
+  }, [persistableData, historyPush, historyState]);
+
+  const handleRestoreState = useCallback((state: any) => {
+    if (!state) return;
+
+    setFormData({
+      name: state.name,
+      description: state.description || "",
+      categoryId: state.categoryId,
+      yieldQuantity: state.yieldQuantity,
+      yieldUnit: state.yieldUnit,
+      prepTimeMinutes: state.prepTimeMinutes,
+      cookTimeMinutes: state.cookTimeMinutes,
+      restTimeMinutes: state.restTimeMinutes,
+      instructions: state.instructions || "",
+      tips: state.tips || "",
+      useGlobalOverhead: state.useGlobalOverhead,
+      overheadCost: state.overheadCost,
+      packagingCost: state.packagingCost,
+      laborCostPerHour: state.laborCostPerHour,
+      targetMargin: state.targetMargin,
+      useManualPrice: !!state.manualPrice,
+      manualPrice: state.manualPrice || 0,
+    });
+
+    const recipeIngredients = state.ingredients.map((si: any) => ({
+      id: si.id,
+      ingredient: si.ingredient,
+      quantity: si.quantity,
+      unit: si.unit,
+      correctionFactor: si.correctionFactor,
+      calculatedCost: si.calculatedCost,
+    }));
+    setIngredients(recipeIngredients);
+    setSteps(state.steps || []);
+    if (state.nutrition) setNutrition(state.nutrition);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (canUndo) {
+      const previous = undo();
+      handleRestoreState(previous);
+      toast.info("Desfeito");
+    }
+  }, [canUndo, undo, handleRestoreState]);
+
+  const handleRedo = useCallback(() => {
+    if (canRedo) {
+      const next = redo();
+      handleRestoreState(next);
+      toast.info("Refeito");
+    }
+  }, [canRedo, redo, handleRestoreState]);
+
+  useKeyboardShortcuts({
+    shortcuts: [
+      { key: 'z', ctrlKey: true, action: handleUndo, description: "Desfazer" },
+      { key: 'z', ctrlKey: true, shiftKey: true, action: handleRedo, description: "Refazer" },
+      // Standalone for some browsers
+      { key: 'y', ctrlKey: true, action: handleRedo, description: "Refazer" }
+    ]
+  });
+
+  // Load sheet data into form
   const handleAddIngredient = useCallback((ingredient: Ingredient) => {
     const newItem: RecipeIngredient = {
       id: `temp-${Date.now()}`,
@@ -229,8 +349,11 @@ const FichaTecnicaEdit = () => {
       prepTimeMinutes: formData.prepTimeMinutes,
       cookTimeMinutes: formData.cookTimeMinutes,
       restTimeMinutes: formData.restTimeMinutes,
-      instructions: formData.instructions || undefined,
+      instructions: steps.length > 0
+        ? steps.map(s => `${s.isCritical ? '[ATENÇÃO] ' : ''}${s.text}${s.timeInMinutes ? ` (${s.timeInMinutes} min)` : ''}`).join('\n')
+        : formData.instructions || undefined,
       tips: formData.tips || undefined,
+      useGlobalOverhead: formData.useGlobalOverhead,
       overheadCost: formData.useGlobalOverhead ? globalOverheadPerUnit : formData.overheadCost,
       packagingCost: formData.packagingCost,
       laborCostPerHour: formData.laborCostPerHour,
@@ -242,6 +365,8 @@ const FichaTecnicaEdit = () => {
       suggestedPrice: calculations.suggestedPrice,
       actualMargin: calculations.actualMargin,
       ingredients: sheetIngredients,
+      steps: steps,
+      nutrition: nutrition,
     });
 
     if (success) {
@@ -260,6 +385,47 @@ const FichaTecnicaEdit = () => {
     } else {
       toast.error("Erro ao excluir ficha. Tente novamente.");
     }
+  };
+
+  const handleRecoverDraft = () => {
+    const draft = recoverDraft() as any;
+    if (draft) {
+      setFormData({
+        name: draft.name,
+        description: draft.description || "",
+        categoryId: draft.categoryId,
+        yieldQuantity: draft.yieldQuantity,
+        yieldUnit: draft.yieldUnit,
+        prepTimeMinutes: draft.prepTimeMinutes,
+        cookTimeMinutes: draft.cookTimeMinutes,
+        restTimeMinutes: draft.restTimeMinutes,
+        instructions: draft.instructions || "",
+        tips: draft.tips || "",
+        useGlobalOverhead: draft.useGlobalOverhead,
+        overheadCost: draft.overheadCost,
+        packagingCost: draft.packagingCost,
+        laborCostPerHour: draft.laborCostPerHour,
+        targetMargin: draft.targetMargin,
+        useManualPrice: !!draft.manualPrice,
+        manualPrice: draft.manualPrice || 0,
+      });
+
+      const recipeIngredients = draft.ingredients.map((si: any) => ({
+        id: si.id,
+        ingredient: si.ingredient,
+        quantity: si.quantity,
+        unit: si.unit,
+        correctionFactor: si.correctionFactor,
+        calculatedCost: si.calculatedCost,
+      }));
+      setIngredients(recipeIngredients);
+      toast.success("Rascunho recuperado com sucesso!");
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    clearDraft();
+    toast.info("Rascunho descartado.");
   };
 
   // Loading state
@@ -294,6 +460,23 @@ const FichaTecnicaEdit = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
+        {/* Recovery Dialog */}
+        <AlertDialog open={hasNewerDraft}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Rascunho não salvo encontrado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Encontramos uma versão mais recente desta ficha técnica salva no seu navegador (autosave).
+                Deseja recuperar as alterações não salvas?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleDiscardDraft}>Descartar Rascunho</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRecoverDraft}>Recuperar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -304,7 +487,12 @@ const FichaTecnicaEdit = () => {
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Editar Ficha Técnica</h1>
-              <p className="text-sm text-muted-foreground">Código: {sheet.code}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">Código: {sheet.code}</p>
+                {saveStatus === 'saving' && <span className="text-xs text-amber-500 animate-pulse flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Salvando...</span>}
+                {saveStatus === 'saved' && <span className="text-xs text-emerald-500 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Salvo</span>}
+                {saveStatus === 'error' && <span className="text-xs text-red-500 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Erro ao salvar</span>}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3 ml-auto sm:ml-0">
@@ -365,6 +553,10 @@ const FichaTecnicaEdit = () => {
                 <TabsTrigger value="instructions" className="gap-2">
                   <BookOpen className="h-4 w-4" />
                   <span className="hidden sm:inline">Preparo</span>
+                </TabsTrigger>
+                <TabsTrigger value="nutrition" className="gap-2">
+                  <Apple className="h-4 w-4" />
+                  <span className="hidden sm:inline">Nutrição</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -525,30 +717,40 @@ const FichaTecnicaEdit = () => {
                         adicionado{ingredients.length !== 1 ? "s" : ""}
                       </p>
                     </div>
-                    <Button onClick={() => setIngredientSelectorOpen(true)}>
-                      <Plus className="h-4 w-4" />
-                      Adicionar
+                    <Button variant="ghost" size="sm" onClick={() => setIngredientSelectorOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Buscar Detalhado
                     </Button>
                   </div>
 
-                  {ingredients.length > 0 ? (
-                    <div className="space-y-2">
-                      {ingredients.map((item) => (
-                        <IngredientRow
-                          key={item.id}
-                          item={item}
-                          onChange={handleUpdateIngredient}
-                          onRemove={handleRemoveIngredient}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-muted-foreground">
-                      <UtensilsCrossed className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p>Nenhum ingrediente adicionado</p>
-                      <p className="text-sm">Clique no botão acima para começar</p>
-                    </div>
-                  )}
+                  <div className="space-y-4">
+                    <SmartIngredientInput
+                      onAdd={handleAddIngredient}
+                      existingIngredients={ingredients.map(i => ({
+                        ingredientId: i.ingredient.id,
+                        ingredientName: i.ingredient.name
+                      }))}
+                    />
+
+                    {ingredients.length > 0 ? (
+                      <div className="space-y-2">
+                        {ingredients.map((item) => (
+                          <IngredientRow
+                            key={item.id}
+                            item={item}
+                            onChange={handleUpdateIngredient}
+                            onRemove={handleRemoveIngredient}
+                            onLastFieldEnter={() => { /* Focus smart input? */ }}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-muted-foreground border-2 border-dashed rounded-xl border-muted">
+                        <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm">Comece adicionando ingredientes acima</p>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               </TabsContent>
 
@@ -641,27 +843,20 @@ const FichaTecnicaEdit = () => {
                 </motion.div>
               </TabsContent>
 
-              {/* Instructions Tab */}
               <TabsContent value="instructions">
+                {/* ... existing ... */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-card rounded-2xl border border-border p-6 space-y-6"
                 >
-                  <div className="space-y-2">
-                    <Label htmlFor="instructions">Modo de Preparo</Label>
-                    <Textarea
-                      id="instructions"
-                      placeholder="Descreva o passo a passo do preparo..."
-                      value={formData.instructions}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, instructions: e.target.value }))
-                      }
-                      rows={10}
-                    />
-                  </div>
+                  <PreparationSteps
+                    steps={steps}
+                    onChange={setSteps}
+                    legacyText={formData.instructions}
+                  />
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 pt-4 border-t">
                     <Label htmlFor="tips">Dicas do Chef</Label>
                     <Textarea
                       id="tips"
@@ -673,6 +868,16 @@ const FichaTecnicaEdit = () => {
                       rows={4}
                     />
                   </div>
+                </motion.div>
+              </TabsContent>
+
+              <TabsContent value="nutrition">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-card rounded-2xl border border-border p-6"
+                >
+                  <NutritionPanel data={nutrition} onChange={setNutrition} />
                 </motion.div>
               </TabsContent>
             </Tabs>
@@ -700,6 +905,14 @@ const FichaTecnicaEdit = () => {
         onSelect={handleAddIngredient}
         selectedIds={selectedIngredientIds}
       />
+      <MobileCostBar
+        totalCost={calculations.totalCost}
+        costPerUnit={calculations.costPerUnit}
+        targetMargin={calculations.actualMargin}
+        yieldQuantity={formData.yieldQuantity}
+        yieldUnit={formData.yieldUnit}
+      />
+      <div className="h-20 lg:hidden" /> {/* Spacer for mobile bar */}
     </MainLayout>
   );
 };

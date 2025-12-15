@@ -1,4 +1,5 @@
-import { GripVertical, Trash2 } from "lucide-react";
+import { memo } from "react";
+import { GripVertical, Trash2, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
 import { unitOptions, Ingredient, ingredientCategories } from "@/lib/mock-data";
 import { formatCurrency, calculateIngredientCost } from "@/lib/calculations";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface RecipeIngredient {
   id: string;
@@ -25,10 +27,17 @@ interface IngredientRowProps {
   item: RecipeIngredient;
   onChange: (id: string, updates: Partial<RecipeIngredient>) => void;
   onRemove: (id: string) => void;
+  onLastFieldEnter?: () => void;
 }
 
-export function IngredientRow({ item, onChange, onRemove }: IngredientRowProps) {
+export const IngredientRow = memo(function IngredientRow({
+  item,
+  onChange,
+  onRemove,
+  onLastFieldEnter
+}: IngredientRowProps) {
   const category = ingredientCategories.find(c => c.id === item.ingredient.categoryId);
+  const hasZeroPrice = item.ingredient.unitPrice === 0;
 
   const handleQuantityChange = (value: string) => {
     const quantity = parseFloat(value) || 0;
@@ -65,8 +74,18 @@ export function IngredientRow({ item, onChange, onRemove }: IngredientRowProps) 
     onChange(item.id, { correctionFactor, calculatedCost });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && onLastFieldEnter) {
+      e.preventDefault();
+      onLastFieldEnter();
+    }
+  };
+
   return (
-    <div className="group flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors">
+    <div className={cn(
+      "group flex items-center gap-3 p-3 rounded-xl bg-card border transition-colors",
+      hasZeroPrice ? "border-amber-200 bg-amber-50/30" : "border-border hover:border-primary/30"
+    )}>
       <button
         type="button"
         className="cursor-grab text-muted-foreground hover:text-foreground touch-none"
@@ -78,7 +97,21 @@ export function IngredientRow({ item, onChange, onRemove }: IngredientRowProps) 
         <div className="flex items-center gap-2">
           <span className="text-lg">{category?.icon}</span>
           <div className="min-w-0">
-            <p className="font-medium text-foreground text-sm truncate">{item.ingredient.name}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-foreground text-sm truncate">{item.ingredient.name}</p>
+              {hasZeroPrice && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ingrediente sem preço cadastrado</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               {formatCurrency(item.ingredient.unitPrice)}/{item.ingredient.priceUnit}
             </p>
@@ -112,6 +145,7 @@ export function IngredientRow({ item, onChange, onRemove }: IngredientRowProps) 
           type="number"
           value={item.correctionFactor}
           onChange={(e) => handleCorrectionChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           step="0.05"
           min="1"
           max="2"
@@ -131,11 +165,11 @@ export function IngredientRow({ item, onChange, onRemove }: IngredientRowProps) 
           variant="ghost"
           size="icon-sm"
           onClick={() => onRemove(item.id)}
-          className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+          className="text-muted-foreground hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
     </div>
   );
-}
+});

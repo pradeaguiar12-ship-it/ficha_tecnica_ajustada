@@ -3,6 +3,14 @@ import { TrendingUp, AlertTriangle, Sparkles, ChevronDown, ChevronUp } from "luc
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { formatCurrency, formatPercent, getMarginQuality } from "@/lib/calculations";
 import { cn } from "@/lib/utils";
 import {
@@ -30,7 +38,7 @@ interface CostSummaryCardProps {
   taxRate?: number;
 }
 
-export function CostSummaryCard({
+function SummaryContent({
   suggestedPrice,
   costPerUnit,
   totalCost,
@@ -41,7 +49,7 @@ export function CostSummaryCard({
   taxRate,
 }: CostSummaryCardProps) {
   const [showOverheadDetail, setShowOverheadDetail] = useState(false);
-  
+
   const marginQuality = getMarginQuality(margin);
   const profit = suggestedPrice - costPerUnit;
   const totalProfit = profit * yieldQuantity;
@@ -52,8 +60,6 @@ export function CostSummaryCard({
   const taxAmount = suggestedPrice * (effectiveTaxRate / 100);
   const profitAfterTax = profit - taxAmount;
 
-  // Get overhead breakdown if using global
-  const monthlyTotal = calculateMonthlyFixedCosts(settings.monthlyOverheadCosts);
   const overheadBreakdown = useGlobalOverhead ? getOverheadBreakdown(settings.monthlyOverheadCosts) : [];
 
   const breakdownItems = [
@@ -122,7 +128,7 @@ export function CostSummaryCard({
         className="rounded-2xl bg-card border border-border p-5"
       >
         <h4 className="font-semibold text-foreground mb-4">Composição do Custo</h4>
-        
+
         <div className="space-y-4 mb-4">
           <div className="flex justify-between items-baseline">
             <span className="text-sm text-muted-foreground">Custo Total da Receita</span>
@@ -177,7 +183,7 @@ export function CostSummaryCard({
                     return (
                       <div key={cat.label} className="flex justify-between text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <span className={cn("h-1.5 w-1.5 rounded-full", cat.color)} />
+                          <span className="h-1.5 w-1.5 rounded-full bg-border" />
                           {cat.label}
                         </span>
                         <span>{formatCurrency(perPortion)}</span>
@@ -221,7 +227,7 @@ export function CostSummaryCard({
           <TrendingUp className="h-5 w-5" />
           <h4 className="font-semibold">Lucro Estimado</h4>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-emerald-600 mb-1">Por porção {effectiveTaxRate > 0 ? "(bruto)" : ""}</p>
@@ -234,5 +240,76 @@ export function CostSummaryCard({
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export function CostSummaryCard(props: CostSummaryCardProps) {
+  const marginQuality = getMarginQuality(props.margin);
+
+  return (
+    <>
+      {/* Desktop Sticky View */}
+      <div className="hidden lg:block">
+        <SummaryContent {...props} />
+      </div>
+
+      {/* Mobile Bottom Drawer */}
+      <div className="lg:hidden">
+        <Drawer>
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-t p-4 shadow-top">
+            <DrawerTrigger asChild>
+              <div className="flex items-center justify-between cursor-pointer active:opacity-70">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {formatCurrency(props.suggestedPrice)}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "h-5 px-1.5 text-[10px]",
+                        marginQuality.color === 'success' && "text-emerald-600 border-emerald-200 bg-emerald-50",
+                        marginQuality.color === 'warning' && "text-amber-600 border-amber-200 bg-amber-50",
+                        marginQuality.color === 'destructive' && "text-red-600 border-red-200 bg-red-50"
+                      )}
+                    >
+                      {formatPercent(props.margin)}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Preço Sugerido</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-sm font-semibold">{formatCurrency(props.costPerUnit)}</p>
+                    <p className="text-xs text-muted-foreground">Custo</p>
+                  </div>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-accent/50">
+                    <ChevronUp className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </DrawerTrigger>
+          </div>
+
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Resumo Financeiro</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4 overflow-y-auto">
+              <SummaryContent {...props} />
+            </div>
+            <div className="p-4 pt-0">
+              <Button className="w-full" asChild>
+                <DrawerTrigger>Fechar Resumo</DrawerTrigger>
+              </Button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+
+        {/* Spacer to prevent content from being hidden behind the bar */}
+        <div className="h-20" />
+      </div>
+    </>
   );
 }
