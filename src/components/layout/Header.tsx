@@ -32,13 +32,16 @@ export function Header() {
                 Edil Digital
               </span>
             </div>
+            <Badge variant="outline" className="hidden sm:inline-flex ml-1 text-[10px] px-1.5 py-0 h-4 border-amber-300 text-amber-600 bg-amber-50">
+              Beta
+            </Badge>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.href || 
+              const isActive = location.pathname === item.href ||
                 (item.href !== "/" && location.pathname.startsWith(item.href));
-              
+
               return (
                 <Link
                   key={item.href}

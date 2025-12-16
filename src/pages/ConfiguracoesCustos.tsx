@@ -13,6 +13,9 @@ import {
   Calculator,
   TrendingUp,
   Info,
+  Download,
+  Upload,
+  AlertTriangle,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,7 @@ import {
 } from "@/lib/overhead-costs";
 import { formatCurrency } from "@/lib/calculations";
 import { useSettings } from "@/hooks/useSettings";
+import { exportAllData, importData } from "@/lib/storage";
 import { toast } from "sonner";
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -357,6 +361,75 @@ export default function ConfiguracoesCustos() {
                     produção estimada. Este valor é automaticamente incluído nas suas fichas técnicas.
                   </p>
                 </div>
+              </div>
+            </motion.div>
+
+            {/* Backup Section - Beta */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="rounded-2xl bg-amber-50 border border-amber-200 p-4"
+            >
+              <div className="flex items-start gap-3 mb-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800 mb-1">Beta: Dados Locais</p>
+                  <p className="text-amber-700 text-xs">
+                    Seus dados ficam salvos neste navegador. Se você limpar o navegador, os dados podem ser perdidos.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start gap-2 border-amber-300 hover:bg-amber-100"
+                  onClick={() => {
+                    const data = exportAllData();
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `meu-chef-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success("Backup exportado com sucesso. Guarde este arquivo em local seguro.");
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar Backup (JSON)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start gap-2 border-amber-300 hover:bg-amber-100"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          const result = importData(ev.target?.result as string);
+                          if (result.success) {
+                            toast.success(result.message);
+                            window.location.reload();
+                          } else {
+                            toast.error(result.message);
+                          }
+                        };
+                        reader.readAsText(file);
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  <Upload className="h-4 w-4" />
+                  Importar Backup (JSON)
+                </Button>
               </div>
             </motion.div>
           </div>
