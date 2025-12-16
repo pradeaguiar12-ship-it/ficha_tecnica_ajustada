@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 export type PersistenceStatus = 'saved' | 'saving' | 'error' | 'unsaved';
 
-export function useSheetPersistence(sheetId: string, currentData: any) {
+export function useSheetPersistence(sheetId: string, currentData: unknown) {
     const [status, setStatus] = useState<PersistenceStatus>('saved');
     const [hasNewerDraft, setHasNewerDraft] = useState(false);
     const channelRef = useRef<BroadcastChannel | null>(null);
@@ -17,10 +17,10 @@ export function useSheetPersistence(sheetId: string, currentData: any) {
     const draftKey = `draft:${sheetId}`;
 
     // Helper to create a stable hash by excluding volatile fields
-    const getStableHash = useCallback((data: any): string => {
-        if (!data) return '';
+    const getStableHash = useCallback((data: unknown): string => {
+        if (!data || typeof data !== 'object') return '';
         // Create a copy without volatile fields that change on every render
-        const { updatedAt, createdAt, ...stableData } = data;
+        const { updatedAt, createdAt, ...stableData } = data as Record<string, unknown>;
         return calculateHash(stableData);
     }, []);
 

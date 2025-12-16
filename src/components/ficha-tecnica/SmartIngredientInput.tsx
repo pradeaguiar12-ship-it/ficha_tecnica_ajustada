@@ -57,6 +57,7 @@ export function SmartIngredientInput({ onAdd, existingIngredients }: SmartIngred
     const inputQuantityRef = useRef<HTMLInputElement>(null);
 
     const { sheets } = useSheets();
+    const isDesktop = useMediaQuery("(min-width: 768px)");
 
     // Performance: Limit + Memo
     const filteredIngredients = useMemo(() => {
@@ -192,8 +193,6 @@ export function SmartIngredientInput({ onAdd, existingIngredients }: SmartIngred
             </div>
         );
     }
-
-    const isDesktop = useMediaQuery("(min-width: 768px)");
 
     // Edit Mode (Quantity Input inline or Drawer)
     if (selectedIngredient) {

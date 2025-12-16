@@ -169,7 +169,7 @@ export function PreparationSteps({ steps, onChange, legacyText }: PreparationSte
             .filter(line => line.length > 0)
             .map(line => {
                 // Remove common bullets
-                let text = line.replace(/^[-•*]|\d+\.\s*/, '').trim();
+                const text = line.replace(/^[-•*]|\d+\.\s*/, '').trim();
                 return {
                     id: crypto.randomUUID(),
                     text,
