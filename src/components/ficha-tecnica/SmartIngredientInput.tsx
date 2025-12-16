@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useSheets } from "@/hooks/useSheets";
 import { Check, ChevronsUpDown, Plus, AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
     DrawerFooter,
     DrawerClose,
 } from "@/components/ui/drawer";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useMediaQuery } from "../../hooks/use-media-query";
 import {
     Command,
     CommandEmpty,
@@ -55,17 +56,44 @@ export function SmartIngredientInput({ onAdd, existingIngredients }: SmartIngred
 
     const inputQuantityRef = useRef<HTMLInputElement>(null);
 
+    const { sheets } = useSheets();
+
     // Performance: Limit + Memo
     const filteredIngredients = useMemo(() => {
         if (!query) return [];
-        // Simple filter first
         const lowerQuery = query.toLowerCase();
+
+        // 1. Regular Ingredients
         const matches = mockIngredients.filter(i =>
             i.name.toLowerCase().includes(lowerQuery)
         );
-        // Limit to top 30 for performance
-        return matches.slice(0, 30);
-    }, [query]);
+
+        // 2. Production Bases (converted to Ingredient format)
+        const baseMatches = sheets
+            .filter(s =>
+                s.sheetType === 'production' &&
+                s.status !== 'ARCHIVED' &&
+                s.name.toLowerCase().includes(lowerQuery)
+            )
+            .map(s => ({
+                id: s.id, // We'll handle ID collision check later if needed, but s.id is usually UUID
+                name: s.name,
+                unitPrice: s.productionUnitCost || 0,
+                priceUnit: s.productionYieldUnit || 'un',
+                defaultUnit: s.productionYieldUnit || 'un',
+                defaultCorrection: 1,
+                categoryId: 'BASE', // Mark as base
+                isActive: true,
+                lastPriceUpdate: s.updatedAt,
+                userId: s.userId,
+                // Custom flag to identify as base downstream
+                isBase: true
+            } as Ingredient & { isBase?: boolean }));
+
+        // Merge and limit
+        const allMatches = [...baseMatches, ...matches];
+        return allMatches.slice(0, 30);
+    }, [query, sheets]);
 
     // Grouping only when cheap (small list) or requested? 
     // For 'Best in Market', flat list with category badges might be faster for "top 30" mixed results
@@ -291,7 +319,12 @@ export function SmartIngredientInput({ onAdd, existingIngredients }: SmartIngred
                                     >
                                         <div className="flex items-center w-full gap-2">
                                             {/* Try to find icon */}
-                                            <span>{ingredientCategories.find(c => c.id === ingredient.categoryId)?.icon || '📦'}</span>
+                                            <span>
+                                                {ingredient.categoryId === 'BASE'
+                                                    ? '🧪'
+                                                    : (ingredientCategories.find(c => c.id === ingredient.categoryId)?.icon || '📦')
+                                                }
+                                            </span>
                                             <span className="flex-1 truncate">{ingredient.name}</span>
                                             <span className="text-xs text-muted-foreground">
                                                 {formatCurrency(ingredient.unitPrice)}/{ingredient.priceUnit}

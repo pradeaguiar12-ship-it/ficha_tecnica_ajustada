@@ -3,20 +3,21 @@ import { TechnicalSheet, PreparationStep, NutritionData } from "@/lib/mock-data"
 import { formatCurrency } from "@/lib/calculations";
 
 // Register fonts if needed, or use default Helvetica
-Font.register({
-    family: 'Inter',
-    fonts: [
-        { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.ttf' },
-        { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.ttf', fontWeight: 'bold' },
-    ]
-});
+// Register fonts if needed, or use default Helvetica
+// Font.register({
+//     family: 'Inter',
+//     fonts: [
+//         { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.ttf' },
+//         { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.ttf', fontWeight: 'bold' },
+//     ]
+// });
 
 const styles = StyleSheet.create({
     page: {
         flexDirection: 'column',
         backgroundColor: '#FFFFFF',
         padding: 30,
-        fontFamily: 'Inter',
+        // fontFamily: 'Inter',
         fontSize: 10,
         color: '#1F2937',
     },
@@ -147,27 +148,27 @@ const MetaSection = ({ sheet }: TemplateProps) => (
     <View style={styles.metaGrid}>
         <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Categoria</Text>
-            <Text style={styles.metaValue}>{sheet.category?.name || 'Geral'}</Text>
+            <Text style={styles.metaValue}>{sheet?.category?.name || 'Geral'}</Text>
         </View>
         <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Rendimento</Text>
-            <Text style={styles.metaValue}>{sheet.yieldQuantity} {sheet.yieldUnit}</Text>
+            <Text style={styles.metaValue}>{sheet?.yieldQuantity ?? 0} {sheet?.yieldUnit || 'un'}</Text>
         </View>
         <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Preparo</Text>
-            <Text style={styles.metaValue}>{sheet.prepTimeMinutes} min</Text>
+            <Text style={styles.metaValue}>{sheet?.prepTimeMinutes ?? 0} min</Text>
         </View>
         <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Cozimento</Text>
-            <Text style={styles.metaValue}>{sheet.cookTimeMinutes} min</Text>
+            <Text style={styles.metaValue}>{sheet?.cookTimeMinutes ?? 0} min</Text>
         </View>
         <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Descanso</Text>
-            <Text style={styles.metaValue}>{sheet.restTimeMinutes} min</Text>
+            <Text style={styles.metaValue}>{sheet?.restTimeMinutes ?? 0} min</Text>
         </View>
         <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Código</Text>
-            <Text style={styles.metaValue}>{sheet.code}</Text>
+            <Text style={styles.metaValue}>{sheet?.code || 'N/A'}</Text>
         </View>
     </View>
 );
@@ -181,12 +182,12 @@ const IngredientsTable = ({ sheet, showCosts }: { sheet: TechnicalSheet, showCos
             <Text style={[styles.col3, styles.bold]}>Und</Text>
             {showCosts && <Text style={[styles.col4, styles.bold]}>Custo</Text>}
         </View>
-        {sheet.ingredients.map((ing, i) => (
+        {(sheet.ingredients || []).map((ing, i) => (
             <View key={i} style={styles.row}>
-                <Text style={styles.col1}>{ing.ingredient.name}</Text>
-                <Text style={styles.col2}>{ing.quantity}</Text>
-                <Text style={styles.col3}>{ing.unit}</Text>
-                {showCosts && <Text style={styles.col4}>{formatCurrency(ing.calculatedCost)}</Text>}
+                <Text style={styles.col1}>{ing?.ingredient?.name || 'Item'}</Text>
+                <Text style={styles.col2}>{ing?.quantity ?? 0}</Text>
+                <Text style={styles.col3}>{ing?.unit || 'un'}</Text>
+                {showCosts && <Text style={styles.col4}>{formatCurrency(ing?.calculatedCost ?? 0)}</Text>}
             </View>
         ))}
         {showCosts && (
@@ -225,7 +226,7 @@ export const KitchenTemplate = ({ sheet, config = defaultConfig }: TemplateProps
             <View style={styles.header}>
                 <View>
                     <Text style={styles.subtitle}>FICHA DE PRODUÇÃO (COZINHA)</Text>
-                    <Text style={styles.title}>{sheet.name}</Text>
+                    <Text style={styles.title}>{sheet?.name || 'Ficha Técnica'}</Text>
                 </View>
                 {config.showLogo && (
                     <Text style={{ fontSize: 10, color: '#9CA3AF' }}>LOGO</Text> // Placeholder for Logo
@@ -256,7 +257,7 @@ export const ManagementTemplate = ({ sheet, config = defaultConfig }: TemplatePr
             <View style={styles.header}>
                 <View>
                     <Text style={styles.subtitle}>FICHA TÉCNICA GERENCIAL</Text>
-                    <Text style={styles.title}>{sheet.name}</Text>
+                    <Text style={styles.title}>{sheet?.name || 'Ficha Técnica'}</Text>
                 </View>
                 {config.showLogo && (
                     <Text style={{ fontSize: 10, color: '#9CA3AF' }}>LOGO</Text> // Placeholder for Logo

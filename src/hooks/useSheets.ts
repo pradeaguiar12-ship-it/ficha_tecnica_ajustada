@@ -46,6 +46,13 @@ interface CreateSheetInput {
   actualMargin: number;
   ingredients: TechnicalSheet['ingredients'];
   status?: TechnicalSheet['status'];
+
+  // Production Base Fields
+  sheetType?: TechnicalSheet['sheetType'];
+  productionYieldUnit?: TechnicalSheet['productionYieldUnit'];
+  productionYieldFinal?: number;
+  productionLossPercent?: number;
+  productionUnitCost?: number;
 }
 
 interface UseSheetsReturn {
@@ -53,22 +60,22 @@ interface UseSheetsReturn {
   sheets: TechnicalSheet[];
   isLoading: boolean;
   error: string | null;
-  
+
   // Ações CRUD
   createSheet: (data: CreateSheetInput) => TechnicalSheet;
   updateSheet: (id: string, data: Partial<TechnicalSheet>) => boolean;
   deleteSheet: (id: string) => boolean;
   duplicateSheet: (id: string) => TechnicalSheet | null;
-  
+
   // Consultas
   getSheetById: (id: string) => TechnicalSheet | undefined;
   getSheetsByCategory: (categoryId: string) => TechnicalSheet[];
   getSheetsByStatus: (status: TechnicalSheet['status']) => TechnicalSheet[];
   searchSheets: (query: string) => TechnicalSheet[];
-  
+
   // Estatísticas
   stats: SheetStats;
-  
+
   // Utilitários
   refresh: () => void;
 }
@@ -79,11 +86,41 @@ export function useSheets(): UseSheetsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Carrega dados iniciais do storage
+  // Carrega dados iniciais do storage e migra custos de bases de produção
   useEffect(() => {
     try {
       const data = sheetsStorage.getAll();
-      setSheets(data);
+
+      // MIGRATION: Recalculate production base unit costs with correct formula
+      // Previously used ingredientsCost only, now uses totalCost (includes labor/overhead)
+      let hasMigrations = false;
+      const migratedData = data.map(sheet => {
+        if (sheet.sheetType === 'production' && sheet.productionYieldFinal && sheet.productionYieldFinal > 0) {
+          // Calculate what the correct unit cost should be
+          const correctUnitCost = Math.round((sheet.totalCost / sheet.productionYieldFinal) * 10000) / 10000;
+
+          // Check if current stored value is significantly different (indicates old calculation)
+          const currentUnitCost = sheet.productionUnitCost || 0;
+          if (Math.abs(correctUnitCost - currentUnitCost) > 0.001) {
+            hasMigrations = true;
+            console.log(`[useSheets] Migrating base "${sheet.name}": ${currentUnitCost} → ${correctUnitCost}`);
+            return { ...sheet, productionUnitCost: correctUnitCost };
+          }
+        }
+        return sheet;
+      });
+
+      // Persist migrations if any
+      if (hasMigrations) {
+        migratedData.forEach(sheet => {
+          if (sheet.sheetType === 'production') {
+            sheetsStorage.update(sheet.id, sheet);
+          }
+        });
+        console.log('[useSheets] Migration completed: Production base costs recalculated');
+      }
+
+      setSheets(migratedData);
       setError(null);
     } catch (err) {
       setError('Erro ao carregar fichas técnicas');
@@ -112,7 +149,7 @@ export function useSheets(): UseSheetsReturn {
   const createSheet = useCallback((data: CreateSheetInput): TechnicalSheet => {
     const now = new Date().toISOString().split('T')[0];
     const category = recipeCategories.find(c => c.id === data.categoryId);
-    
+
     // Verifica limite de fichas
     if (!checkSheetLimit(sheets.length)) {
       throw new Error('Limite de fichas técnicas atingido. Faça upgrade para criar mais fichas.');
@@ -132,10 +169,10 @@ export function useSheets(): UseSheetsReturn {
 
     // Salva no storage
     sheetsStorage.add(newSheet);
-    
+
     // Atualiza estado local
     setSheets(prev => [newSheet, ...prev]);
-    
+
     return newSheet;
   }, []);
 
@@ -149,30 +186,30 @@ export function useSheets(): UseSheetsReturn {
     }
 
     const success = sheetsStorage.update(id, updateData);
-    
+
     if (success) {
-      setSheets(prev => prev.map(s => 
-        s.id === id 
-          ? { 
-              ...s, 
-              ...updateData, 
-              updatedAt: new Date().toISOString().split('T')[0] 
-            }
+      setSheets(prev => prev.map(s =>
+        s.id === id
+          ? {
+            ...s,
+            ...updateData,
+            updatedAt: new Date().toISOString().split('T')[0]
+          }
           : s
       ));
     }
-    
+
     return success;
   }, []);
 
   // Excluir ficha
   const deleteSheet = useCallback((id: string): boolean => {
     const success = sheetsStorage.delete(id);
-    
+
     if (success) {
       setSheets(prev => prev.filter(s => s.id !== id));
     }
-    
+
     return success;
   }, []);
 
@@ -184,7 +221,7 @@ export function useSheets(): UseSheetsReturn {
     const now = new Date().toISOString().split('T')[0];
     const newId = `sheet-${Date.now()}`;
     const newCode = generateSheetCode();
-    
+
     const duplicated: TechnicalSheet = {
       ...original,
       id: newId,
@@ -197,10 +234,10 @@ export function useSheets(): UseSheetsReturn {
 
     // Salva no storage
     sheetsStorage.add(duplicated);
-    
+
     // Atualiza estado local
     setSheets(prev => [duplicated, ...prev]);
-    
+
     return duplicated;
   }, [sheets]);
 
@@ -223,7 +260,7 @@ export function useSheets(): UseSheetsReturn {
   const searchSheets = useCallback((query: string): TechnicalSheet[] => {
     const lowerQuery = query.toLowerCase().trim();
     if (!lowerQuery) return sheets;
-    
+
     return sheets.filter(s =>
       s.name.toLowerCase().includes(lowerQuery) ||
       s.code.toLowerCase().includes(lowerQuery) ||
@@ -242,11 +279,11 @@ export function useSheets(): UseSheetsReturn {
       : 0;
     const lowMarginCount = sheets.filter(s => s.actualMargin < 20).length;
 
-    return { 
-      total, 
-      active, 
-      draft, 
-      archived, 
+    return {
+      total,
+      active,
+      draft,
+      archived,
       avgMargin: Math.round(avgMargin * 10) / 10,
       lowMarginCount,
     };

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, Users, MoreVertical, Eye, Copy, Trash2, ChefHat, FileDown } from "lucide-react";
+import { Clock, Users, MoreVertical, Eye, Copy, Trash2, ChefHat, FileDown, FlaskConical } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ export function RecipeCard({ sheet, index, onDelete, onDuplicate }: RecipeCardPr
             <span className="text-xs opacity-50">Sem imagem</span>
           </div>
         )}
-        
+
         {/* Status badge */}
         <Badge
           variant="status"
@@ -62,8 +62,18 @@ export function RecipeCard({ sheet, index, onDelete, onDuplicate }: RecipeCardPr
           {status?.label}
         </Badge>
 
+        {/* Production Badge */}
+        {sheet.sheetType === 'production' && (
+          <Badge
+            className="absolute top-3 right-3 bg-purple-500 hover:bg-purple-600 text-white border-none shadow-sm gap-1"
+          >
+            <FlaskConical className="h-3 w-3" />
+            Base
+          </Badge>
+        )}
+
         {/* Category icon */}
-        {sheet.category && (
+        {sheet.category && sheet.sheetType !== 'production' && (
           <div className="absolute top-3 right-3 text-2xl">
             {sheet.category.icon}
           </div>
@@ -92,44 +102,67 @@ export function RecipeCard({ sheet, index, onDelete, onDuplicate }: RecipeCardPr
           </div>
         </div>
 
-        {/* Prices */}
-        <div className="grid grid-cols-2 gap-3 py-3 border-y border-border">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Custo/unid.</p>
-            <p className="font-bold text-foreground">{formatCurrency(sheet.costPerUnit)}</p>
+        {/* Prices & Production Info */}
+        {sheet.sheetType === 'production' ? (
+          /* Production Layout */
+          <div className="space-y-3 py-3 border-t border-border mt-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Custo / {sheet.productionYieldUnit || sheet.yieldUnit}</p>
+                <p className="font-bold text-foreground">{formatCurrency(sheet.productionUnitCost || 0)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Custo Total</p>
+                <p className="font-bold text-foreground">{formatCurrency((sheet.totalCost || 0))}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg">
+              <FlaskConical className="h-3.5 w-3.5 text-purple-500" />
+              <span>Base de Produção</span>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Preço sugerido</p>
-            <p className="font-bold text-primary">{formatCurrency(sheet.suggestedPrice)}</p>
-          </div>
-        </div>
+        ) : (
+          /* Dish Layout */
+          <>
+            <div className="grid grid-cols-2 gap-3 py-3 border-y border-border">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Custo/unid.</p>
+                <p className="font-bold text-foreground">{formatCurrency(sheet.costPerUnit)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Preço sugerido</p>
+                <p className="font-bold text-primary">{formatCurrency(sheet.suggestedPrice)}</p>
+              </div>
+            </div>
 
-        {/* Margin */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Margem</span>
-            <Badge
-              variant={marginQuality.color === 'success' ? 'success' : marginQuality.color === 'warning' ? 'warning' : 'destructive'}
-              className="text-[10px]"
-            >
-              {sheet.actualMargin.toFixed(1)}% - {marginQuality.label}
-            </Badge>
-          </div>
-          <Progress
-            value={Math.min(sheet.actualMargin, 100)}
-            variant={marginQuality.color === 'success' ? 'success' : marginQuality.color === 'warning' ? 'warning' : 'destructive'}
-            className="h-1.5"
-          />
-        </div>
+            {/* Margin */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Margem</span>
+                <Badge
+                  variant={marginQuality.color === 'success' ? 'success' : marginQuality.color === 'warning' ? 'warning' : 'destructive'}
+                  className="text-[10px]"
+                >
+                  {sheet.actualMargin.toFixed(1)}% - {marginQuality.label}
+                </Badge>
+              </div>
+              <Progress
+                value={Math.min(sheet.actualMargin, 100)}
+                variant={marginQuality.color === 'success' ? 'success' : marginQuality.color === 'warning' ? 'warning' : 'destructive'}
+                className="h-1.5"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Actions */}
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="secondary" 
-              size="icon-sm" 
+            <Button
+              variant="secondary"
+              size="icon-sm"
               className="h-8 w-8 bg-card/90 backdrop-blur-sm shadow-md"
               aria-label={`Menu de opções para ${sheet.name}`}
             >
@@ -143,8 +176,8 @@ export function RecipeCard({ sheet, index, onDelete, onDuplicate }: RecipeCardPr
                 Ver / Editar
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => onDuplicate?.(sheet.id)} 
+            <DropdownMenuItem
+              onClick={() => onDuplicate?.(sheet.id)}
               className="flex items-center gap-2"
               aria-label={`Duplicar ficha técnica ${sheet.name}`}
             >

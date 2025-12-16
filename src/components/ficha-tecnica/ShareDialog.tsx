@@ -114,13 +114,19 @@ export function ShareDialog({ sheet }: ShareDialogProps) {
                         </div>
                         <PDFDownloadLink
                             document={<KitchenTemplate sheet={sheet} config={config} />}
-                            fileName={`${sheet.name.toLowerCase().replace(/\s+/g, '-')}-cozinha.pdf`}
+                            fileName={`${sheet.name?.toLowerCase().replace(/\s+/g, '-') || 'ficha'}-cozinha.pdf`}
+                            className="block w-full"
                         >
-                            {({ blob, url, loading, error }) => (
-                                <Button className="w-full" disabled={loading}>
-                                    <Download className="h-4 w-4 mr-2" />
-                                    {loading ? 'Gerando PDF...' : 'Baixar PDF Cozinha'}
-                                </Button>
+                            {({ loading, error }) => (
+                                <div className={`w-full inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${error
+                                        ? 'bg-destructive text-destructive-foreground'
+                                        : loading
+                                            ? 'bg-primary/70 text-primary-foreground cursor-wait'
+                                            : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer'
+                                    }`}>
+                                    <Download className="h-4 w-4" />
+                                    {error ? `Erro: ${error}` : loading ? 'Gerando PDF...' : 'Baixar PDF Cozinha'}
+                                </div>
                             )}
                         </PDFDownloadLink>
                     </TabsContent>
@@ -135,13 +141,19 @@ export function ShareDialog({ sheet }: ShareDialogProps) {
                         </div>
                         <PDFDownloadLink
                             document={<ManagementTemplate sheet={sheet} config={config} />}
-                            fileName={`${sheet.name.toLowerCase().replace(/\s+/g, '-')}-gerencial.pdf`}
+                            fileName={`${sheet.name?.toLowerCase().replace(/\s+/g, '-') || 'ficha'}-gerencial.pdf`}
+                            className="block w-full"
                         >
-                            {({ blob, url, loading, error }) => (
-                                <Button className="w-full" variant="default" disabled={loading}>
-                                    <Download className="h-4 w-4 mr-2" />
-                                    {loading ? 'Gerando PDF...' : 'Baixar PDF Gerencial'}
-                                </Button>
+                            {({ loading, error }) => (
+                                <div className={`w-full inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${error
+                                        ? 'bg-destructive text-destructive-foreground'
+                                        : loading
+                                            ? 'bg-primary/70 text-primary-foreground cursor-wait'
+                                            : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer'
+                                    }`}>
+                                    <Download className="h-4 w-4" />
+                                    {error ? `Erro: ${error}` : loading ? 'Gerando PDF...' : 'Baixar PDF Gerencial'}
+                                </div>
                             )}
                         </PDFDownloadLink>
                     </TabsContent>

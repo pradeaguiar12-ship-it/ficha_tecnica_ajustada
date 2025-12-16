@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { saveToStorage, loadFromStorage, getStorageTimestamp } from '@/lib/storage-utils';
+import { saveToStorage, loadFromStorage, getStorageTimestamp, calculateHash } from '@/lib/storage-utils';
 import { toast } from 'sonner';
 
 export type PersistenceStatus = 'saved' | 'saving' | 'error' | 'unsaved';
@@ -9,24 +9,48 @@ export function useSheetPersistence(sheetId: string, currentData: any) {
     const [hasNewerDraft, setHasNewerDraft] = useState(false);
     const channelRef = useRef<BroadcastChannel | null>(null);
 
-    const draftKey = `draft:${sheetId}`;
-    const snapshotKey = `sheet:${sheetId}`; // Assuming main storage uses this, or we rely on useSheets for main save.
-    // Actually, useSheets uses 'sheets-data' key for ALL sheets.
-    // So 'snapshot' concept here is slightly different: it's the specific persistence of this session.
-    // But wait, the app saves to 'sheets-data'.
-    // WAL means: Write to 'draft:ID' frequently. Write to 'sheets-data' (via updateSheet) less frequently or on demand.
+    // Flag to prevent autosave from running until draft decision is made
+    const draftHandledRef = useRef(false);
+    // Store the initial data hash to compare with drafts
+    const initialDataHashRef = useRef<string | null>(null);
 
-    // Check for newer draft on mount
+    const draftKey = `draft:${sheetId}`;
+
+    // Helper to create a stable hash by excluding volatile fields
+    const getStableHash = useCallback((data: any): string => {
+        if (!data) return '';
+        // Create a copy without volatile fields that change on every render
+        const { updatedAt, createdAt, ...stableData } = data;
+        return calculateHash(stableData);
+    }, []);
+
+    // Check for newer draft on mount - ONLY ONCE
     useEffect(() => {
-        const draftTime = getStorageTimestamp(draftKey);
-        // We ideally need to know the timestamp of the loaded data.
-        // Assuming loaded data is current. If draft is > now (impossible) or just exists?
-        // Logic: If draft exists, prompt? 
-        // Better: If draft exists, it implies a crash or unsaved session.
-        if (draftTime > 0) {
-            setHasNewerDraft(true);
+        if (!sheetId || !currentData) return;
+
+        // Calculate hash of current (loaded) data
+        const currentHash = getStableHash(currentData);
+        initialDataHashRef.current = currentHash;
+
+        // Check if draft exists and is different from loaded data
+        const existingDraft = loadFromStorage(draftKey);
+        if (existingDraft) {
+            const draftHash = getStableHash(existingDraft);
+
+            // Only show dialog if draft is DIFFERENT from current data
+            if (draftHash !== currentHash) {
+                setHasNewerDraft(true);
+            } else {
+                // Draft is same as loaded data - silently clear it
+                localStorage.removeItem(draftKey);
+                draftHandledRef.current = true;
+            }
+        } else {
+            // No draft exists - mark as handled so autosave can start
+            draftHandledRef.current = true;
         }
-    }, [draftKey]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sheetId, draftKey, getStableHash]); // Run once when sheetId changes
 
     // Broadcast Channel for Tab Conflict
     useEffect(() => {
@@ -58,9 +82,18 @@ export function useSheetPersistence(sheetId: string, currentData: any) {
         };
     }, [sheetId]);
 
-    // Autosave Draft
+    // Autosave Draft - ONLY after draft decision is handled
     useEffect(() => {
         if (!sheetId || !currentData) return;
+
+        // Don't autosave until the draft recovery decision has been made
+        if (!draftHandledRef.current) return;
+
+        // Don't save if data hasn't changed from initial
+        if (initialDataHashRef.current && getStableHash(currentData) === initialDataHashRef.current) {
+            setStatus('saved');
+            return;
+        }
 
         setStatus('saving');
 
@@ -79,7 +112,7 @@ export function useSheetPersistence(sheetId: string, currentData: any) {
         }, 2000); // 2s debounce for draft
 
         return () => clearTimeout(timer);
-    }, [currentData, draftKey, sheetId]);
+    }, [currentData, draftKey, sheetId, getStableHash]);
 
     const recoverDraft = useCallback(() => {
         const draft = loadFromStorage(draftKey);
@@ -92,6 +125,9 @@ export function useSheetPersistence(sheetId: string, currentData: any) {
     const clearDraft = useCallback(() => {
         localStorage.removeItem(draftKey);
         setHasNewerDraft(false);
+        draftHandledRef.current = true; // Allow autosave to start now
+        // Update the initial hash to current data to prevent immediate re-save
+        // (The calling component should pass the new data after recovery)
     }, [draftKey]);
 
     return {

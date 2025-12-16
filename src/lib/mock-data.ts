@@ -40,6 +40,13 @@ export interface SheetIngredient {
   calculatedCost: number;
   orderIndex: number;
   notes?: string;
+
+  // Production reference support (for using bases as ingredients)
+  ingredientKind?: 'raw' | 'production_ref';  // default: 'raw'
+  refSheetId?: string;  // ID of referenced production sheet
+  refUnitCost?: number;  // Snapshot of unit cost at time of use
+  refYieldUnit?: 'g' | 'ml' | 'un' | 'portion';
+  refUpdatedAt?: string;  // When the ref was last updated
 }
 
 export interface PreparationStep {
@@ -60,6 +67,10 @@ export interface NutritionData {
   sodium: number;
 }
 
+// Sheet type definition
+export type SheetType = 'dish' | 'production';
+export type ProductionYieldUnit = 'g' | 'ml' | 'un' | 'portion';
+
 export interface TechnicalSheet {
   id: string;
   userId: string;
@@ -68,8 +79,20 @@ export interface TechnicalSheet {
   description?: string;
   categoryId: string;
   category?: RecipeCategory;
+
+  // Sheet type (dish = final product, production = base/pre-prep)
+  sheetType?: SheetType;  // default: 'dish'
+
+  // Standard yield (for dishes - portions)
   yieldQuantity: number;
   yieldUnit: string;
+
+  // Production-specific fields (only for sheetType === 'production')
+  productionYieldUnit?: ProductionYieldUnit;  // Unit of final yield (g/ml/un/portion)
+  productionYieldFinal?: number;  // Final yield after losses (e.g., 2400 ml)
+  productionLossPercent?: number;  // Optional loss/reduction percentage
+  productionUnitCost?: number;  // Calculated cost per unit (R$/g, R$/ml etc)
+
   prepTimeMinutes: number;
   cookTimeMinutes: number;
   restTimeMinutes: number;
@@ -608,4 +631,18 @@ export const statusOptions = [
   { value: 'DRAFT', label: 'Rascunho', color: 'bg-amber-100 text-amber-700' },
   { value: 'ACTIVE', label: 'Ativa', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'ARCHIVED', label: 'Arquivada', color: 'bg-slate-100 text-slate-600' },
+];
+
+// Sheet type options
+export const sheetTypeOptions = [
+  { value: 'dish', label: 'Prato', icon: '🍽️', description: 'Produto final vendido ao cliente' },
+  { value: 'production', label: 'Produção (Base)', icon: '🧪', description: 'Item auxiliar usado em outras receitas' },
+];
+
+// Production yield unit options
+export const productionYieldUnitOptions = [
+  { value: 'g', label: 'Gramas (g)', description: 'Para preparos sólidos' },
+  { value: 'ml', label: 'Mililitros (ml)', description: 'Para caldos, molhos, líquidos' },
+  { value: 'un', label: 'Unidades', description: 'Para itens contáveis' },
+  { value: 'portion', label: 'Porções', description: 'Para bases pré-porcionadas' },
 ];

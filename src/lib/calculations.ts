@@ -97,3 +97,67 @@ export function getMarginQuality(margin: number): {
   if (margin >= 20) return { label: 'Boa', color: 'warning' };
   return { label: 'Baixa', color: 'destructive' };
 }
+
+// ============================================
+// PRODUCTION SHEET CALCULATIONS
+// ============================================
+
+/**
+ * Calculate the unit cost of a production sheet (base/pre-prep)
+ * @param totalIngredientCost - Total cost of all ingredients
+ * @param yieldFinal - Final yield after losses (e.g., 2400 ml)
+ * @returns Cost per unit (R$/g, R$/ml, etc) with 4 decimal places for precision
+ */
+export function calculateProductionUnitCost(
+  totalIngredientCost: number,
+  yieldFinal: number
+): number {
+  if (yieldFinal <= 0) return 0;
+  // Use 4 decimal places for better precision (e.g., R$ 0.0150/ml)
+  return Math.round((totalIngredientCost / yieldFinal) * 10000) / 10000;
+}
+
+/**
+ * Calculate the cost of using a production base in a recipe
+ * @param quantity - Amount used (e.g., 80 ml)
+ * @param unitCost - Cost per unit of the base (e.g., 0.12 R$/ml)
+ * @returns Total cost (e.g., 9.60)
+ */
+export function calculateProductionIngredientCost(
+  quantity: number,
+  unitCost: number
+): number {
+  return Math.round(quantity * unitCost * 100) / 100;
+}
+
+/**
+ * Format production unit cost for display
+ * @param unitCost - Cost per unit
+ * @param unit - Unit type (g, ml, un, portion)
+ * @returns Formatted string like "R$ 0,015 / ml"
+ */
+export function formatProductionUnitCost(unitCost: number, unit: string): string {
+  const unitLabels: Record<string, string> = {
+    'g': 'g',
+    'ml': 'ml',
+    'un': 'un',
+    'portion': 'porção',
+  };
+
+  return `${formatCurrency(unitCost)} / ${unitLabels[unit] || unit}`;
+}
+
+/**
+ * Generate sheet code with appropriate prefix
+ * @param sheetType - 'dish' or 'production'
+ * @returns Code like "FT-A1B2C3" for dishes or "BP-A1B2C3" for production
+ */
+export function generateSheetCodeWithType(sheetType: 'dish' | 'production' = 'dish'): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const prefix = sheetType === 'production' ? 'BP-' : 'FT-';
+  let code = prefix;
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}

@@ -9,6 +9,7 @@ import {
   Package,
   AlertTriangle,
   FileText,
+  FlaskConical,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -45,19 +46,20 @@ export default function FichaTecnicaList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+
   // Hook de fichas técnicas com persistência
-  const { 
-    sheets, 
-    deleteSheet, 
-    duplicateSheet, 
+  const {
+    sheets,
+    deleteSheet,
+    duplicateSheet,
     stats: sheetStats,
-    isLoading 
+    isLoading
   } = useSheets();
-  
+
   // Hook de ingredientes para estatísticas
   const { stats: ingredientStats } = useIngredients();
-  
+
   // Estados para controle do dialog de exclusão
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sheetToDelete, setSheetToDelete] = useState<TechnicalSheet | null>(null);
@@ -69,9 +71,10 @@ export default function FichaTecnicaList() {
         sheet.code.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || sheet.status === statusFilter;
       const matchesCategory = categoryFilter === "all" || sheet.categoryId === categoryFilter;
-      return matchesSearch && matchesStatus && matchesCategory;
+      const matchesType = typeFilter === "all" || (sheet.sheetType || 'dish') === typeFilter;
+      return matchesSearch && matchesStatus && matchesCategory && matchesType;
     });
-  }, [sheets, search, statusFilter, categoryFilter]);
+  }, [sheets, search, statusFilter, categoryFilter, typeFilter]);
 
   // Handler para iniciar processo de exclusão
   const handleDelete = (id: string) => {
@@ -133,8 +136,14 @@ export default function FichaTecnicaList() {
                 Ingredientes
               </Link>
             </Button>
+            <Button variant="outline" asChild className="hidden sm:flex border-purple-200 hover:bg-purple-50 hover:text-purple-700 text-purple-600">
+              <Link to="/ficha-tecnica/nova?type=production" aria-label="Criar nova base de produção">
+                <FlaskConical className="h-4 w-4 mr-2" />
+                Nova Base
+              </Link>
+            </Button>
             <Button variant="gradient" asChild>
-              <Link to="/ficha-tecnica/nova" aria-label="Criar nova ficha técnica">
+              <Link to="/ficha-tecnica/nova?type=dish" aria-label="Criar nova ficha técnica">
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 Nova Ficha
               </Link>
@@ -184,7 +193,19 @@ export default function FichaTecnicaList() {
               aria-label="Buscar fichas técnicas por nome ou código"
             />
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[140px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="dish">Pratos</SelectItem>
+                <SelectItem value="production">Bases</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="w-[1px] bg-border h-10 mx-1 hidden sm:block"></div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[150px]">
                 <Filter className="h-4 w-4 mr-2" />

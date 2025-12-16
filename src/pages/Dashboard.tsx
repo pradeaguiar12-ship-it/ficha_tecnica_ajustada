@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { sheets, stats } = useSheets();
-  const { stats: ingredientStats } = useIngredients();
+  const { allIngredients, stats: ingredientStats } = useIngredients();
 
   // Métricas por categoria
   const categoryMetrics = useMemo(() => {
@@ -65,7 +65,7 @@ export default function Dashboard() {
 
   // Ingredientes mais caros
   const expensiveIngredients = useMemo(() => {
-    return [...ingredientStats.allIngredients]
+    return [...(allIngredients || [])]
       .sort((a, b) => b.unitPrice - a.unitPrice)
       .slice(0, 10)
       .map(ing => ({
@@ -73,7 +73,7 @@ export default function Dashboard() {
         price: ing.unitPrice,
         unit: ing.priceUnit,
       }));
-  }, [ingredientStats.allIngredients]);
+  }, [allIngredients]);
 
   // Fichas com margem baixa
   const lowMarginSheets = useMemo(() => {

@@ -63,7 +63,7 @@ export function simulatePriceChange(
   // Encontra o ingrediente
   const allIngredients = sheets.flatMap(s => s.ingredients.map(si => si.ingredient));
   const ingredient = allIngredients.find(ing => ing.id === ingredientId);
-  
+
   if (!ingredient) {
     throw new Error(`Ingrediente ${ingredientId} não encontrado`);
   }
@@ -85,30 +85,51 @@ export function simulatePriceChange(
 
   // Calcula impacto em cada ficha
   const impacts: ImpactResult[] = affectedSheets.map(sheet => {
-    // Recalcula custos com novo preço
-    const updatedIngredients = sheet.ingredients.map(si => {
-      if (si.ingredient.id === ingredientId) {
-        const updatedIngredient = { ...si.ingredient, unitPrice: newPrice };
-        const newCost = calculateIngredientCost(
-          si.quantity,
-          si.unit,
-          newPrice,
-          updatedIngredient.priceUnit,
-          si.correctionFactor
-        );
-        return { ...si, ingredient: updatedIngredient, calculatedCost: newCost };
-      }
-      return si;
-    });
-
-    const newIngredientsCost = updatedIngredients.reduce((acc, si) => acc + si.calculatedCost, 0);
-    
+    // Get business settings for overhead calculation
     const settings = getBusinessSettings();
     const monthlyTotal = calculateMonthlyFixedCosts(settings.monthlyOverheadCosts);
     const overheadPerUnit = calculateOverheadPerUnit(monthlyTotal, settings.estimatedMonthlyProduction);
-    
     const effectiveOverhead = sheet.overheadCost || overheadPerUnit;
-    
+
+    // ===== RECALCULATE CURRENT COST (with original prices) =====
+    const currentIngredientsCost = sheet.ingredients.reduce((acc, si) => {
+      const cost = calculateIngredientCost(
+        si.quantity,
+        si.unit,
+        si.ingredient.unitPrice, // Original price
+        si.ingredient.priceUnit,
+        si.correctionFactor
+      );
+      return acc + cost;
+    }, 0);
+
+    const currentTotalCost = calculateTotalCost(
+      currentIngredientsCost,
+      effectiveOverhead,
+      sheet.packagingCost,
+      sheet.laborCostPerHour,
+      sheet.prepTimeMinutes,
+      sheet.cookTimeMinutes
+    );
+
+    const currentCostPerUnit = calculateCostPerUnit(currentTotalCost, sheet.yieldQuantity);
+    const currentSuggestedPrice = sheet.manualPrice || calculateSuggestedPrice(currentCostPerUnit, sheet.targetMargin);
+    const currentMargin = calculateActualMargin(currentCostPerUnit, currentSuggestedPrice);
+
+    // ===== RECALCULATE NEW COST (with updated price for target ingredient) =====
+    const newIngredientsCost = sheet.ingredients.reduce((acc, si) => {
+      const priceToUse = si.ingredient.id === ingredientId ? newPrice : si.ingredient.unitPrice;
+      const priceUnitToUse = si.ingredient.priceUnit;
+      const cost = calculateIngredientCost(
+        si.quantity,
+        si.unit,
+        priceToUse,
+        priceUnitToUse,
+        si.correctionFactor
+      );
+      return acc + cost;
+    }, 0);
+
     const newTotalCost = calculateTotalCost(
       newIngredientsCost,
       effectiveOverhead,
@@ -119,21 +140,34 @@ export function simulatePriceChange(
     );
 
     const newCostPerUnit = calculateCostPerUnit(newTotalCost, sheet.yieldQuantity);
-    const newSuggestedPrice = sheet.manualPrice || calculateSuggestedPrice(newCostPerUnit, sheet.targetMargin);
-    const newMargin = calculateActualMargin(newCostPerUnit, newSuggestedPrice);
 
-    const costIncrease = newCostPerUnit - sheet.costPerUnit;
-    const costIncreasePercent = (costIncrease / sheet.costPerUnit) * 100;
-    const priceIncrease = newSuggestedPrice - sheet.suggestedPrice;
-    const marginChange = newMargin - sheet.actualMargin;
+    // IMPORTANT: For simulation, we want to show:
+    // 1. What happens to margin if we KEEP the current price
+    // 2. What new price we'd need to MAINTAIN the target margin
 
-    // Determina severidade
+    // Calculate new margin IF WE KEEP THE CURRENT PRICE (this is the real impact)
+    const newMarginIfKeepPrice = calculateActualMargin(newCostPerUnit, currentSuggestedPrice);
+
+    // Calculate new suggested price to MAINTAIN target margin (for reference)
+    const newSuggestedPriceToMaintainMargin = calculateSuggestedPrice(newCostPerUnit, sheet.targetMargin);
+
+    // ===== CALCULATE DIFFERENCES =====
+    const costIncrease = newCostPerUnit - currentCostPerUnit;
+    const costIncreasePercent = currentCostPerUnit > 0 ? (costIncrease / currentCostPerUnit) * 100 : 0;
+    const priceIncrease = newSuggestedPriceToMaintainMargin - currentSuggestedPrice; // How much more we'd need to charge
+    const marginChange = newMarginIfKeepPrice - currentMargin; // Actual margin impact
+
+    // Determina severidade based on ACTUAL impact direction
+    // If price increased and cost increased, that's the expected bad scenario
     let severity: ImpactResult['severity'] = 'low';
-    if (costIncreasePercent > 20 || marginChange < -10) {
+    const absCostPercent = Math.abs(costIncreasePercent);
+    const absMarginChange = Math.abs(marginChange);
+
+    if (absCostPercent > 20 || absMarginChange > 10) {
       severity = 'critical';
-    } else if (costIncreasePercent > 10 || marginChange < -5) {
+    } else if (absCostPercent > 10 || absMarginChange > 5) {
       severity = 'high';
-    } else if (costIncreasePercent > 5 || marginChange < -2) {
+    } else if (absCostPercent > 5 || absMarginChange > 2) {
       severity = 'medium';
     }
 
@@ -141,15 +175,15 @@ export function simulatePriceChange(
       sheetId: sheet.id,
       sheetName: sheet.name,
       sheetCode: sheet.code,
-      currentCost: sheet.costPerUnit,
+      currentCost: currentCostPerUnit,
       newCost: newCostPerUnit,
       costIncrease,
       costIncreasePercent,
-      currentPrice: sheet.suggestedPrice,
-      newPrice: newSuggestedPrice,
+      currentPrice: currentSuggestedPrice,
+      newPrice: newSuggestedPriceToMaintainMargin,
       priceIncrease,
-      currentMargin: sheet.actualMargin,
-      newMargin,
+      currentMargin: currentMargin,
+      newMargin: newMarginIfKeepPrice,
       marginChange,
       isAffected: true,
       severity,
@@ -165,7 +199,7 @@ export function simulatePriceChange(
 
   // Gera recomendações
   const recommendations: string[] = [];
-  
+
   if (priceVariation > 0) {
     recommendations.push(`Preço aumentará em ${priceVariation.toFixed(1)}%`);
   } else {

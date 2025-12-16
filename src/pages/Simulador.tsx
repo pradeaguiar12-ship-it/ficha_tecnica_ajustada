@@ -89,7 +89,7 @@ export default function Simulador() {
   // Resultado da simulação
   const simulationResult = useMemo(() => {
     if (!selectedIngredientId || priceVariation === 0) return null;
-    
+
     try {
       return simulatePriceChange(sheets, selectedIngredientId, priceVariation);
     } catch (error) {
@@ -107,7 +107,7 @@ export default function Simulador() {
   }, [selectedIngredientId, allIngredients]);
 
   const selectedIngredient = allIngredients.find(ing => ing.id === selectedIngredientId);
-  const newPrice = selectedIngredient 
+  const newPrice = selectedIngredient
     ? selectedIngredient.unitPrice * (1 + priceVariation / 100)
     : 0;
 
@@ -115,8 +115,8 @@ export default function Simulador() {
   const chartData = useMemo(() => {
     if (!simulationResult) return [];
     return simulationResult.impacts.map(impact => ({
-      name: impact.sheetName.length > 15 
-        ? impact.sheetName.substring(0, 15) + '...' 
+      name: impact.sheetName.length > 15
+        ? impact.sheetName.substring(0, 15) + '...'
         : impact.sheetName,
       fullName: impact.sheetName,
       impacto: impact.costIncreasePercent,
@@ -220,7 +220,7 @@ export default function Simulador() {
                   </Select>
                   {selectedIngredient && (
                     <p className="text-xs text-muted-foreground">
-                      Usado em {sheets.filter(s => 
+                      Usado em {sheets.filter(s =>
                         s.ingredients.some(si => si.ingredient.id === selectedIngredientId)
                       ).length} ficha(s) técnica(s)
                     </p>
@@ -288,7 +288,7 @@ export default function Simulador() {
                             {priceVariation !== 0 && (
                               <div className={cn(
                                 "text-center py-2 rounded-lg text-sm font-semibold",
-                                priceVariation > 0 
+                                priceVariation > 0
                                   ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
                                   : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                               )}>
@@ -332,7 +332,7 @@ export default function Simulador() {
                             </p>
                           </div>
                           {priceDiff !== 0 && (
-                            <Badge 
+                            <Badge
                               variant={priceDiff < 0 ? "default" : "secondary"}
                               className="ml-2"
                             >
@@ -396,11 +396,15 @@ export default function Simulador() {
                           <DollarSign className="h-4 w-4 text-muted-foreground" />
                           <p className="text-xs text-muted-foreground font-medium">Custo por Porção</p>
                         </div>
-                        <p className="text-2xl font-bold">
-                          {formatCurrency(simulationResult.averageCostIncrease)}
+                        <p className={cn(
+                          "text-2xl font-bold",
+                          simulationResult.averageCostIncrease > 0 && "text-red-600",
+                          simulationResult.averageCostIncrease < 0 && "text-emerald-600"
+                        )}>
+                          {simulationResult.averageCostIncrease > 0 ? "+" : ""}{formatCurrency(simulationResult.averageCostIncrease)}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          aumento médio
+                          {simulationResult.averageCostIncrease > 0 ? "aumento médio" : simulationResult.averageCostIncrease < 0 ? "redução média" : "sem variação"}
                         </p>
                       </div>
 
@@ -415,7 +419,7 @@ export default function Simulador() {
                           simulationResult.averageMarginDecrease < 0 && "text-red-600",
                           simulationResult.averageMarginDecrease > 0 && "text-emerald-600"
                         )}>
-                          {formatPercent(simulationResult.averageMarginDecrease)}
+                          {simulationResult.averageMarginDecrease > 0 ? "+" : ""}{formatPercent(simulationResult.averageMarginDecrease)}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           variação média
@@ -428,8 +432,12 @@ export default function Simulador() {
                           <BarChart3 className="h-4 w-4 text-muted-foreground" />
                           <p className="text-xs text-muted-foreground font-medium">Impacto Total</p>
                         </div>
-                        <p className="text-2xl font-bold text-red-600">
-                          {formatCurrency(simulationResult.totalCostIncrease)}
+                        <p className={cn(
+                          "text-2xl font-bold",
+                          simulationResult.totalCostIncrease > 0 && "text-red-600",
+                          simulationResult.totalCostIncrease < 0 && "text-emerald-600"
+                        )}>
+                          {simulationResult.totalCostIncrease > 0 ? "+" : ""}{formatCurrency(simulationResult.totalCostIncrease)}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           em todas as fichas
@@ -477,18 +485,18 @@ export default function Simulador() {
                       <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={chartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-                          <XAxis 
-                            dataKey="name" 
+                          <XAxis
+                            dataKey="name"
                             angle={-45}
                             textAnchor="end"
                             height={80}
                             tick={{ fontSize: 12 }}
                           />
-                          <YAxis 
+                          <YAxis
                             label={{ value: 'Variação (%)', angle: -90, position: 'insideLeft' }}
                             tick={{ fontSize: 12 }}
                           />
-                          <Tooltip 
+                          <Tooltip
                             content={({ active, payload }) => {
                               if (active && payload && payload.length) {
                                 const data = payload[0].payload;
@@ -563,8 +571,8 @@ export default function Simulador() {
                             <p className="text-sm text-muted-foreground mb-3">
                               Revise as fichas afetadas abaixo e ajuste os preços conforme necessário
                             </p>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() => {
                                 const criticalSheets = simulationResult.impacts
@@ -614,94 +622,94 @@ export default function Simulador() {
                               return severityOrder[a.severity] - severityOrder[b.severity];
                             })
                             .map((impact) => (
-                            <TableRow 
-                              key={impact.sheetId}
-                              className={cn(
-                                impact.severity === 'critical' && "bg-red-50/50 dark:bg-red-950/10",
-                                impact.severity === 'high' && "bg-amber-50/50 dark:bg-amber-950/10"
-                              )}
-                            >
-                              <TableCell>
-                                <div>
-                                  <p className="font-semibold">{impact.sheetName}</p>
-                                  <p className="text-xs text-muted-foreground">{impact.sheetCode}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {formatCurrency(impact.currentCost)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <span className="font-bold">
-                                    {formatCurrency(impact.newCost)}
-                                  </span>
-                                  {impact.costIncrease > 0 && (
-                                    <TrendingUp className="h-4 w-4 text-red-600" />
-                                  )}
-                                  {impact.costIncrease < 0 && (
-                                    <TrendingDown className="h-4 w-4 text-emerald-600" />
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className={cn(
-                                "text-right font-semibold",
-                                impact.costIncreasePercent > 0 ? "text-red-600" : "text-emerald-600"
-                              )}>
-                                {impact.costIncreasePercent > 0 ? "+" : ""}
-                                {impact.costIncreasePercent.toFixed(1)}%
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  {formatPercent(impact.currentMargin)}
-                                  {impact.currentMargin < 20 && (
-                                    <AlertTriangle className="h-3 w-3 text-amber-600" />
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className={cn(
-                                "text-right font-semibold",
-                                impact.marginChange < 0 ? "text-red-600" : "text-emerald-600"
-                              )}>
-                                <div className="flex flex-col items-end">
-                                  <span>{formatPercent(impact.newMargin)}</span>
-                                  {impact.marginChange !== 0 && (
-                                    <span className={cn(
-                                      "text-xs",
-                                      impact.marginChange < 0 ? "text-red-600" : "text-emerald-600"
-                                    )}>
-                                      ({impact.marginChange > 0 ? "+" : ""}
-                                      {impact.marginChange.toFixed(1)}%)
+                              <TableRow
+                                key={impact.sheetId}
+                                className={cn(
+                                  impact.severity === 'critical' && "bg-red-50/50 dark:bg-red-950/10",
+                                  impact.severity === 'high' && "bg-amber-50/50 dark:bg-amber-950/10"
+                                )}
+                              >
+                                <TableCell>
+                                  <div>
+                                    <p className="font-semibold">{impact.sheetName}</p>
+                                    <p className="text-xs text-muted-foreground">{impact.sheetCode}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {formatCurrency(impact.currentCost)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <span className="font-bold">
+                                      {formatCurrency(impact.newCost)}
                                     </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex flex-col items-center gap-2">
-                                  <Badge
-                                    variant={
-                                      impact.severity === 'critical' ? 'destructive' :
-                                      impact.severity === 'high' ? 'warning' :
-                                      impact.severity === 'medium' ? 'default' : 'secondary'
-                                    }
-                                    className="text-xs"
-                                  >
-                                    {impact.severity === 'critical' ? 'Crítico' :
-                                     impact.severity === 'high' ? 'Alto' :
-                                     impact.severity === 'medium' ? 'Médio' : 'Baixo'}
-                                  </Badge>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 text-xs"
-                                    onClick={() => navigate(`/ficha-tecnica/${impact.sheetId}`)}
-                                  >
-                                    Editar
-                                    <ArrowRight className="h-3 w-3 ml-1" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                    {impact.costIncrease > 0 && (
+                                      <TrendingUp className="h-4 w-4 text-red-600" />
+                                    )}
+                                    {impact.costIncrease < 0 && (
+                                      <TrendingDown className="h-4 w-4 text-emerald-600" />
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className={cn(
+                                  "text-right font-semibold",
+                                  impact.costIncreasePercent > 0 ? "text-red-600" : "text-emerald-600"
+                                )}>
+                                  {impact.costIncreasePercent > 0 ? "+" : ""}
+                                  {impact.costIncreasePercent.toFixed(1)}%
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                    {formatPercent(impact.currentMargin)}
+                                    {impact.currentMargin < 20 && (
+                                      <AlertTriangle className="h-3 w-3 text-amber-600" />
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className={cn(
+                                  "text-right font-semibold",
+                                  impact.marginChange < 0 ? "text-red-600" : "text-emerald-600"
+                                )}>
+                                  <div className="flex flex-col items-end">
+                                    <span>{formatPercent(impact.newMargin)}</span>
+                                    {impact.marginChange !== 0 && (
+                                      <span className={cn(
+                                        "text-xs",
+                                        impact.marginChange < 0 ? "text-red-600" : "text-emerald-600"
+                                      )}>
+                                        ({impact.marginChange > 0 ? "+" : ""}
+                                        {impact.marginChange.toFixed(1)}%)
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Badge
+                                      variant={
+                                        impact.severity === 'critical' ? 'destructive' :
+                                          impact.severity === 'high' ? 'warning' :
+                                            impact.severity === 'medium' ? 'default' : 'secondary'
+                                      }
+                                      className="text-xs"
+                                    >
+                                      {impact.severity === 'critical' ? 'Crítico' :
+                                        impact.severity === 'high' ? 'Alto' :
+                                          impact.severity === 'medium' ? 'Médio' : 'Baixo'}
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 text-xs"
+                                      onClick={() => navigate(`/ficha-tecnica/${impact.sheetId}`)}
+                                    >
+                                      Editar
+                                      <ArrowRight className="h-3 w-3 ml-1" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </div>

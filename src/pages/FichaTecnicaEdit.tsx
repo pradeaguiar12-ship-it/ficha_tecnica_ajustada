@@ -10,6 +10,7 @@ import {
   DollarSign,
   BookOpen,
   Trash2,
+  Beaker,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -41,15 +42,22 @@ import { CostSummaryCard } from "@/components/ficha-tecnica/CostSummaryCard";
 import { OverheadCostSection } from "@/components/ficha-tecnica/OverheadCostSection";
 import { IngredientSelector } from "@/components/ficha-tecnica/IngredientSelector";
 import { IngredientRow, RecipeIngredient } from "@/components/ficha-tecnica/IngredientRow";
+import { ProductionYieldSection } from "@/components/ficha-tecnica/ProductionYieldSection";
+import { BaseCostSummary } from "@/components/ficha-tecnica/BaseCostSummary";
 import {
   yieldUnitOptions,
   Ingredient,
+  sheetTypeOptions,
+  SheetType,
+  ProductionYieldUnit,
 } from "@/lib/mock-data";
 import {
   calculateTotalCost,
   calculateCostPerUnit,
   calculateSuggestedPrice,
   calculateActualMargin,
+  calculateProductionUnitCost,
+  calculateIngredientCost,
 } from "@/lib/calculations";
 import { useSheets } from "@/hooks/useSheets";
 import { useSettings } from "@/hooks/useSettings";
@@ -68,6 +76,7 @@ import { SmartIngredientInput } from "@/components/ficha-tecnica/SmartIngredient
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Apple } from "lucide-react";
 
+
 const FichaTecnicaEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -75,7 +84,7 @@ const FichaTecnicaEdit = () => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Hooks de persistência
-  const { getSheetById, updateSheet, deleteSheet, isLoading } = useSheets();
+  const { getSheetById, updateSheet, deleteSheet, isLoading, sheets } = useSheets();
   const { settings, overheadPerUnit: globalOverheadPerUnit } = useSettings();
 
   // Buscar ficha pelo ID
@@ -86,13 +95,22 @@ const FichaTecnicaEdit = () => {
     name: "",
     description: "",
     categoryId: "",
+    // Sheet type (dish or production base)
+    sheetType: "dish" as SheetType,
+    // Standard yield for dishes
     yieldQuantity: 4,
     yieldUnit: "porções",
+    // Production-specific fields
+    productionYieldUnit: "ml" as ProductionYieldUnit,
+    productionYieldFinal: 0,
+    productionLossPercent: 0,
+    // Time
     prepTimeMinutes: 0,
     cookTimeMinutes: 0,
     restTimeMinutes: 0,
     instructions: "",
     tips: "",
+    // Costs
     useGlobalOverhead: true,
     overheadCost: 0,
     packagingCost: 0,
@@ -113,13 +131,22 @@ const FichaTecnicaEdit = () => {
         name: sheet.name,
         description: sheet.description || "",
         categoryId: sheet.categoryId,
+        // Sheet type (default to 'dish' for existing sheets)
+        sheetType: sheet.sheetType || "dish",
+        // Standard yield
         yieldQuantity: sheet.yieldQuantity,
         yieldUnit: sheet.yieldUnit,
+        // Production fields
+        productionYieldUnit: sheet.productionYieldUnit || "ml",
+        productionYieldFinal: sheet.productionYieldFinal || 0,
+        productionLossPercent: sheet.productionLossPercent || 0,
+        // Time
         prepTimeMinutes: sheet.prepTimeMinutes,
         cookTimeMinutes: sheet.cookTimeMinutes,
         restTimeMinutes: sheet.restTimeMinutes,
         instructions: sheet.instructions || "",
         tips: sheet.tips || "",
+        // Costs
         useGlobalOverhead: sheet.overheadCost === 0 || sheet.overheadCost === globalOverheadPerUnit,
         overheadCost: sheet.overheadCost,
         packagingCost: sheet.packagingCost,
@@ -130,20 +157,62 @@ const FichaTecnicaEdit = () => {
       });
 
       // Convert SheetIngredient[] to RecipeIngredient[]
-      const recipeIngredients: RecipeIngredient[] = sheet.ingredients.map((si) => ({
-        id: si.id,
-        ingredient: si.ingredient,
-        quantity: si.quantity,
-        unit: si.unit,
-        correctionFactor: si.correctionFactor,
-        calculatedCost: si.calculatedCost,
-      }));
+      const recipeIngredients: RecipeIngredient[] = sheet.ingredients
+        .filter(si => si && si.ingredient) // Safety check
+        .map((si) => ({
+          id: si.id,
+          ingredient: si.ingredient,
+          quantity: si.quantity,
+          unit: si.unit,
+          correctionFactor: si.correctionFactor,
+          calculatedCost: si.calculatedCost,
+          ingredientKind: si.ingredientKind,
+          refSheetId: si.refSheetId,
+          refUnitCost: si.refUnitCost,
+        }));
       setIngredients(recipeIngredients);
       setSteps(sheet.steps || []);
       if (sheet.nutrition) setNutrition(sheet.nutrition);
       setIsInitialized(true);
     }
   }, [sheet, isInitialized, globalOverheadPerUnit]);
+
+  // Synchronize Production Base Costs
+  useEffect(() => {
+    if (isInitialized && !isLoading && sheets.length > 0) {
+      let hasUpdates = false;
+      const syncedIngredients = ingredients.map(ing => {
+        if (ing.ingredientKind === 'production_ref' && ing.refSheetId) {
+          const baseSheet = sheets.find(s => s.id === ing.refSheetId);
+          if (baseSheet && baseSheet.productionUnitCost !== undefined) {
+            const currentSnapshot = ing.refUnitCost || 0;
+            const liveCost = baseSheet.productionUnitCost;
+
+            if (Math.abs(currentSnapshot - liveCost) > 0.0001) {
+              hasUpdates = true;
+              return {
+                ...ing,
+                refUnitCost: liveCost,
+                ingredient: {
+                  ...ing.ingredient,
+                  unitPrice: liveCost
+                }
+              };
+            }
+          }
+        }
+        return ing;
+      });
+
+      if (hasUpdates) {
+        setIngredients(syncedIngredients);
+        toast.info("Custos atualizados", {
+          description: "Os custos de algumas bases foram atualizados automaticamente.",
+          duration: 4000
+        });
+      }
+    }
+  }, [isInitialized, isLoading, sheets.length]);
 
   const debouncedFormData = useDebounce(formData, 300);
   const debouncedIngredients = useDebounce(ingredients, 300);
@@ -170,12 +239,19 @@ const FichaTecnicaEdit = () => {
     const laborCost =
       (debouncedFormData.laborCostPerHour * (debouncedFormData.prepTimeMinutes + debouncedFormData.cookTimeMinutes)) / 60;
 
+    // Calculate production unit cost for production sheets
+    // Now uses TOTAL cost (including overhead, packaging, labor) for accurate base costing
+    const productionUnitCost = debouncedFormData.sheetType === 'production'
+      ? calculateProductionUnitCost(totalCost, debouncedFormData.productionYieldFinal)
+      : 0;
+
     return {
       ingredientsCost,
       totalCost,
       costPerUnit,
       suggestedPrice,
       actualMargin,
+      productionUnitCost,
       breakdown: {
         ingredients: ingredientsCost,
         overhead: effectiveOverhead,
@@ -193,6 +269,9 @@ const FichaTecnicaEdit = () => {
       ...debouncedFormData,
       ingredients: debouncedIngredients.map(ing => ({
         id: ing.id,
+        sheetId: sheet.id,
+        ingredientId: ing.ingredient.id,
+        orderIndex: 0, // Not tracked in UI yet
         ingredient: ing.ingredient,
         quantity: ing.quantity,
         unit: ing.unit,
@@ -232,8 +311,12 @@ const FichaTecnicaEdit = () => {
       name: state.name,
       description: state.description || "",
       categoryId: state.categoryId,
+      sheetType: state.sheetType || "dish",
       yieldQuantity: state.yieldQuantity,
       yieldUnit: state.yieldUnit,
+      productionYieldUnit: state.productionYieldUnit || "ml",
+      productionYieldFinal: state.productionYieldFinal || 0,
+      productionLossPercent: state.productionLossPercent || 0,
       prepTimeMinutes: state.prepTimeMinutes,
       cookTimeMinutes: state.cookTimeMinutes,
       restTimeMinutes: state.restTimeMinutes,
@@ -287,15 +370,34 @@ const FichaTecnicaEdit = () => {
   });
 
   // Load sheet data into form
-  const handleAddIngredient = useCallback((ingredient: Ingredient) => {
+  const handleAddIngredient = useCallback((ingredient: Ingredient, quantity: number = 0, unit: string = "un", mode: 'new' | 'sum' = 'new') => {
+    const isBase = ingredient.id.startsWith('BASE_');
+    const baseId = isBase ? ingredient.id.replace('BASE_', '') : undefined;
+
     const newItem: RecipeIngredient = {
       id: `temp-${Date.now()}`,
       ingredient,
-      quantity: 0,
-      unit: "g",
-      correctionFactor: ingredient.defaultCorrection,
+      quantity,
+      unit,
+      correctionFactor: ingredient.defaultCorrection || 1,
       calculatedCost: 0,
+
+      // Phase 2: Production Base Reference
+      ingredientKind: isBase ? 'production_ref' : 'raw',
+      refSheetId: baseId,
+      refUnitCost: isBase ? ingredient.unitPrice : undefined,
+      refYieldUnit: isBase ? (ingredient.priceUnit as any) : undefined
     };
+
+    // Calculate initial cost
+    newItem.calculatedCost = calculateIngredientCost(
+      newItem.quantity,
+      newItem.unit,
+      newItem.ingredient.unitPrice,
+      newItem.ingredient.priceUnit,
+      newItem.correctionFactor
+    );
+
     setIngredients((prev) => [...prev, newItem]);
     setIngredientSelectorOpen(false);
   }, []);
@@ -326,6 +428,11 @@ const FichaTecnicaEdit = () => {
       toast.error("Adicione pelo menos um ingrediente");
       return;
     }
+    // Validate production sheet specific fields
+    if (formData.sheetType === 'production' && formData.productionYieldFinal <= 0) {
+      toast.error("Rendimento final é obrigatório para fichas de produção");
+      return;
+    }
 
     // Preparar ingredientes para salvar
     const sheetIngredients = ingredients.map((ing, index) => ({
@@ -338,6 +445,12 @@ const FichaTecnicaEdit = () => {
       correctionFactor: ing.correctionFactor,
       calculatedCost: ing.calculatedCost,
       orderIndex: index,
+
+      // Phase 2: Production Base Reference
+      ingredientKind: ing.ingredientKind || 'raw',
+      refSheetId: ing.refSheetId,
+      refUnitCost: ing.refUnitCost,
+      refYieldUnit: ing.refYieldUnit,
     }));
 
     // Atualizar usando o hook
@@ -345,6 +458,13 @@ const FichaTecnicaEdit = () => {
       name: formData.name,
       description: formData.description || undefined,
       categoryId: formData.categoryId,
+      // Production sheet fields
+      sheetType: formData.sheetType,
+      productionYieldUnit: formData.sheetType === 'production' ? formData.productionYieldUnit : undefined,
+      productionYieldFinal: formData.sheetType === 'production' ? formData.productionYieldFinal : undefined,
+      productionLossPercent: formData.sheetType === 'production' ? formData.productionLossPercent : undefined,
+      productionUnitCost: formData.sheetType === 'production' ? calculations.productionUnitCost : undefined,
+      // Standard yield
       yieldQuantity: formData.yieldQuantity,
       yieldUnit: formData.yieldUnit,
       prepTimeMinutes: formData.prepTimeMinutes,
@@ -395,8 +515,12 @@ const FichaTecnicaEdit = () => {
         name: draft.name,
         description: draft.description || "",
         categoryId: draft.categoryId,
+        sheetType: draft.sheetType || "dish",
         yieldQuantity: draft.yieldQuantity,
         yieldUnit: draft.yieldUnit,
+        productionYieldUnit: draft.productionYieldUnit || "ml",
+        productionYieldFinal: draft.productionYieldFinal || 0,
+        productionLossPercent: draft.productionLossPercent || 0,
         prepTimeMinutes: draft.prepTimeMinutes,
         cookTimeMinutes: draft.cookTimeMinutes,
         restTimeMinutes: draft.restTimeMinutes,
@@ -420,7 +544,11 @@ const FichaTecnicaEdit = () => {
         calculatedCost: si.calculatedCost,
       }));
       setIngredients(recipeIngredients);
+      clearDraft(); // Close dialog after recovering
       toast.success("Rascunho recuperado com sucesso!");
+    } else {
+      clearDraft(); // Clear invalid draft
+      toast.info("Nenhum rascunho válido encontrado.");
     }
   };
 
@@ -487,7 +615,9 @@ const FichaTecnicaEdit = () => {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Editar Ficha Técnica</h1>
+              <h1 className="text-2xl font-bold text-foreground">
+                {sheet.sheetType === 'production' ? "Editar Base de Produção" : "Editar Ficha Técnica"}
+              </h1>
               <div className="flex items-center gap-2">
                 <p className="text-sm text-muted-foreground">Código: {sheet.code}</p>
                 <StatusBadge status={saveStatus} />
@@ -495,6 +625,7 @@ const FichaTecnicaEdit = () => {
             </div>
           </div>
           <div className="flex items-center gap-3 ml-auto sm:ml-0">
+            {persistableData && <ShareDialog sheet={persistableData} />}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="text-destructive hover:bg-destructive/10">
@@ -568,7 +699,9 @@ const FichaTecnicaEdit = () => {
                 >
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Nome da Receita *</Label>
+                      <Label htmlFor="name">
+                        {formData.sheetType === 'production' ? "Nome da Base *" : "Nome da Receita *"}
+                      </Label>
                       <Input
                         id="name"
                         placeholder="Ex: Risoto de Camarão"
@@ -577,6 +710,43 @@ const FichaTecnicaEdit = () => {
                           setFormData((prev) => ({ ...prev, name: e.target.value }))
                         }
                       />
+                    </div>
+
+                    {/* Sheet Type Selector - Positioned prominently after Name */}
+                    <div className="space-y-3">
+                      <Label>Tipo de Ficha</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {sheetTypeOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setFormData((prev) => ({
+                              ...prev,
+                              sheetType: option.value as SheetType
+                            }))}
+                            className={`
+                              relative p-4 rounded-xl border-2 transition-all duration-200
+                              ${formData.sheetType === option.value
+                                ? 'border-primary bg-primary/5 shadow-sm'
+                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{option.icon}</span>
+                              <div className="text-left">
+                                <p className="font-semibold">{option.label}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {option.description}
+                                </p>
+                              </div>
+                            </div>
+                            {formData.sheetType === option.value && (
+                              <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -616,42 +786,45 @@ const FichaTecnicaEdit = () => {
                       </Select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Rendimento *</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={formData.yieldQuantity}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              yieldQuantity: parseInt(e.target.value) || 1,
-                            }))
-                          }
-                        />
+                    {/* Standard Yield - Only for dishes */}
+                    {formData.sheetType === 'dish' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Rendimento *</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={formData.yieldQuantity}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                yieldQuantity: parseInt(e.target.value) || 1,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Unidade</Label>
+                          <Select
+                            value={formData.yieldUnit}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({ ...prev, yieldUnit: value }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {yieldUnitOptions.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Unidade</Label>
-                        <Select
-                          value={formData.yieldUnit}
-                          onValueChange={(value) =>
-                            setFormData((prev) => ({ ...prev, yieldUnit: value }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {yieldUnitOptions.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                    )}
 
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
@@ -697,6 +870,25 @@ const FichaTecnicaEdit = () => {
                         />
                       </div>
                     </div>
+
+                    {/* Production Yield Section - Only for production sheets */}
+                    {formData.sheetType === 'production' && (
+                      <ProductionYieldSection
+                        yieldFinal={formData.productionYieldFinal}
+                        yieldUnit={formData.productionYieldUnit}
+                        lossPercent={formData.productionLossPercent}
+                        totalIngredientCost={calculations.ingredientsCost}
+                        onYieldFinalChange={(value) =>
+                          setFormData((prev) => ({ ...prev, productionYieldFinal: value }))
+                        }
+                        onYieldUnitChange={(value) =>
+                          setFormData((prev) => ({ ...prev, productionYieldUnit: value }))
+                        }
+                        onLossPercentChange={(value) =>
+                          setFormData((prev) => ({ ...prev, productionLossPercent: value }))
+                        }
+                      />
+                    )}
                   </div>
                 </motion.div>
               </TabsContent>
@@ -884,16 +1076,26 @@ const FichaTecnicaEdit = () => {
 
           {/* Cost Summary - Sticky on desktop */}
           <div className="lg:sticky lg:top-24 lg:self-start">
-            <CostSummaryCard
-              suggestedPrice={calculations.suggestedPrice}
-              costPerUnit={calculations.costPerUnit}
-              totalCost={calculations.totalCost}
-              margin={calculations.actualMargin}
-              breakdown={calculations.breakdown}
-              yieldQuantity={formData.yieldQuantity}
-              useGlobalOverhead={formData.useGlobalOverhead}
-              taxRate={settings.taxRate}
-            />
+            {formData.sheetType === 'production' ? (
+              <BaseCostSummary
+                productionUnitCost={calculations.productionUnitCost}
+                totalCost={calculations.totalCost}
+                productionYieldFinal={formData.productionYieldFinal}
+                productionYieldUnit={formData.productionYieldUnit}
+                hasYieldUndefined={!formData.productionYieldFinal || formData.productionYieldFinal <= 0}
+              />
+            ) : (
+              <CostSummaryCard
+                suggestedPrice={calculations.suggestedPrice}
+                costPerUnit={calculations.costPerUnit}
+                totalCost={calculations.totalCost}
+                margin={calculations.actualMargin}
+                breakdown={calculations.breakdown}
+                yieldQuantity={formData.yieldQuantity}
+                useGlobalOverhead={formData.useGlobalOverhead}
+                taxRate={settings.taxRate}
+              />
+            )}
           </div>
         </div>
       </div>

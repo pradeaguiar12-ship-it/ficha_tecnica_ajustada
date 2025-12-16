@@ -8,6 +8,7 @@ import {
   Edit,
   Trash2,
   Package,
+  FlaskConical,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -50,15 +51,16 @@ import { Label } from "@/components/ui/label";
 import { priceUnitOptions, Ingredient } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/calculations";
 import { useIngredients } from "@/hooks/useIngredients";
+import { useSheets } from "@/hooks/useSheets";
 import { toast } from "sonner";
 
 export default function Ingredientes() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"user" | "system">("system");
+  const [activeTab, setActiveTab] = useState<"user" | "system" | "production">("system");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
-  
+
   // Hook de ingredientes com persistência
   const {
     systemIngredients,
@@ -69,7 +71,12 @@ export default function Ingredientes() {
     categories: ingredientCategories,
     isLoading,
   } = useIngredients();
-  
+
+  const { sheets } = useSheets();
+  const productionBases = useMemo(() =>
+    sheets.filter(s => s.sheetType === 'production'),
+    [sheets]);
+
   // Estados para controle do dialog de exclusão
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ingredientToDelete, setIngredientToDelete] = useState<Ingredient | null>(null);
@@ -86,7 +93,7 @@ export default function Ingredientes() {
   // Filtra ingredientes baseado na tab ativa
   const filteredIngredients = useMemo(() => {
     const sourceList = activeTab === "user" ? userIngredients : systemIngredients;
-    
+
     return sourceList.filter((ing) => {
       const matchesSearch = ing.name.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = categoryFilter === "all" || ing.categoryId === categoryFilter;
@@ -216,6 +223,14 @@ export default function Ingredientes() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="production" className="text-purple-700 data-[state=active]:text-purple-800 data-[state=active]:bg-purple-50">
+              Bases de Produção
+              {productionBases.length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 px-1.5 bg-purple-100 text-purple-700">
+                  {productionBases.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <div className="mt-6 space-y-4">
@@ -324,7 +339,7 @@ export default function Ingredientes() {
                   <div className="py-16 text-center">
                     <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
                     <p className="text-muted-foreground">
-                      {activeTab === "user" 
+                      {activeTab === "user"
                         ? "Você ainda não criou nenhum ingrediente personalizado"
                         : "Nenhum ingrediente encontrado"
                       }
@@ -338,6 +353,65 @@ export default function Ingredientes() {
                         Criar primeiro ingrediente
                       </Button>
                     )}
+                  </div>
+                )}
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="production" className="mt-0">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-card rounded-2xl border border-border overflow-hidden"
+              >
+                {productionBases.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Base</TableHead>
+                        <TableHead>Rendimento</TableHead>
+                        <TableHead className="text-right">Custo Unitário</TableHead>
+                        <TableHead className="text-right">Custo Total</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {productionBases.map((base) => (
+                        <TableRow key={base.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <FlaskConical className="h-4 w-4 text-purple-500" />
+                              {base.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {base.productionYieldFinal || '-'} {base.productionYieldUnit}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrency(base.productionUnitCost || 0)}/{base.productionYieldUnit}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrency(base.totalCost || 0)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link to={`/ficha-tecnica/${base.id}`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="py-16 text-center">
+                    <FlaskConical className="h-12 w-12 mx-auto mb-3 text-purple-200" />
+                    <p className="text-muted-foreground">Nenhuma base de produção encontrada</p>
+                    <Button variant="link" asChild className="mt-2 text-purple-600">
+                      <Link to="/ficha-tecnica/nova?type=production">Criar primeira base</Link>
+                    </Button>
                   </div>
                 )}
               </motion.div>

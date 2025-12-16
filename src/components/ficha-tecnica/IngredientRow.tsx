@@ -1,7 +1,8 @@
 import { memo } from "react";
-import { GripVertical, Trash2, AlertTriangle } from "lucide-react";
+import { GripVertical, Trash2, AlertTriangle, FlaskConical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,11 @@ export interface RecipeIngredient {
   unit: string;
   correctionFactor: number;
   calculatedCost: number;
+  // Phase 2: Production Sheet Reference
+  ingredientKind?: 'raw' | 'production_ref';
+  refSheetId?: string;
+  refUnitCost?: number;
+  refYieldUnit?: 'g' | 'ml' | 'un' | 'portion';
 }
 
 interface IngredientRowProps {
@@ -36,7 +42,10 @@ export const IngredientRow = memo(function IngredientRow({
   onRemove,
   onLastFieldEnter
 }: IngredientRowProps) {
+  if (!item || !item.ingredient) return null;
+
   const category = ingredientCategories.find(c => c.id === item.ingredient.categoryId);
+  const categoryIcon = category?.icon || (item.ingredientKind === 'production_ref' || item.ingredient.categoryId === 'BASE' ? '🧪' : '📦');
   const hasZeroPrice = item.ingredient.unitPrice === 0;
 
   const handleQuantityChange = (value: string) => {
@@ -95,9 +104,15 @@ export const IngredientRow = memo(function IngredientRow({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{category?.icon}</span>
+          <span className="text-lg">{categoryIcon}</span>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
+              {item.ingredientKind === 'production_ref' && (
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 border-purple-200 dark:border-purple-800 flex-shrink-0">
+                  <FlaskConical className="h-3 w-3 mr-1" />
+                  Base
+                </Badge>
+              )}
               <p className="font-medium text-foreground text-sm truncate">{item.ingredient.name}</p>
               {hasZeroPrice && (
                 <TooltipProvider>
@@ -149,8 +164,12 @@ export const IngredientRow = memo(function IngredientRow({
           step="0.05"
           min="1"
           max="2"
-          className="w-16 h-9 text-sm text-center"
           title="Fator de Correção"
+          disabled={item.ingredientKind === 'production_ref'}
+          className={cn(
+            "w-16 h-9 text-sm text-center",
+            item.ingredientKind === 'production_ref' && "opacity-50 bg-muted cursor-not-allowed"
+          )}
         />
 
         <div className={cn(
